@@ -44,8 +44,12 @@ export const onAuthChange = (cb: (user: User | null) => void) => onAuthStateChan
 export interface Ingredient {
   id: string;
   name: string;
-  amount: number;   // 1인분 사용량(g)
-  unitPrice: number; // 100g당 단가(원)
+  amount: number;       // 1회 사용량(g)
+  purchaseQty: number;  // 구매량(g)
+  purchasePrice: number;// 구매가격(원)
+  yieldRate: number;    // 수율(%) 기본 100
+  priceDate: string;    // 기준날짜 YYYY-MM-DD
+  unitPrice?: number;   // 하위호환
 }
 
 export interface Menu {
@@ -103,7 +107,13 @@ export async function getMenus(uid: string, storeId: string): Promise<Menu[]> {
 
 export async function saveMenu(uid: string, storeId: string, menu: Menu) {
   const { id, ...data } = menu;
-  const cost = menu.ingredients.reduce((s, ing) => s + (ing.amount / 100) * ing.unitPrice, 0);
+  const cost = menu.ingredients.reduce((s, ing) => {
+    const qty = ing.purchaseQty || 0;
+    const price = ing.purchasePrice || 0;
+    const yr = (ing.yieldRate && ing.yieldRate > 0) ? ing.yieldRate : 100;
+    const up = (qty > 0 && price > 0) ? (price / (qty * yr / 100)) * 100 : (ing.unitPrice || 0);
+    return s + (ing.amount / 100) * up;
+  }, 0);
   const costRate = menu.price > 0 ? (cost / menu.price) * 100 : 0;
   if (id) {
     return setDoc(doc(db, "users", uid, "stores", storeId, "menus", id), {
