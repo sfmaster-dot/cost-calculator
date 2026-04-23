@@ -245,9 +245,6 @@ export default function CostApp() {
           {stores.filter(s => s.id !== selectedStore.id).length > 0 && (
             <CopyMenuDropdown stores={stores.filter(s=>s.id!==selectedStore.id)} onCopy={handleCopyMenus} />
           )}
-          <button onClick={handleSyncProfit} style={{ ...S.btn("primary"), fontSize:12, padding:"7px 14px" }}>
-            📊 손익분석기 연동
-          </button>
         </div>
       </div>
 
@@ -269,10 +266,6 @@ export default function CostApp() {
       {tab === "summary" && <SummaryPanel menus={menus} />}
       {tab === "reverse" && <ReversePanel />}
 
-      <div style={{ textAlign:"center", marginTop:48, color:"var(--text-sub)", fontSize:12 }}>
-        단꿈 원가율 계산기 · made by <a href="https://danggum.net" target="_blank" style={{ color:"var(--accent)", textDecoration:"none" }}>단꿈TV</a>
-      </div>
-
       <div style={{
         position:"fixed", bottom:32, left:"50%",
         transform:`translateX(-50%) translateY(${toastShow ? 0 : 80}px)`,
@@ -289,22 +282,68 @@ export default function CostApp() {
 // ── 로그인 화면 ───────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
   return (
-    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:"100vh", gap:24, padding:24 }}>
-      <div style={{ fontSize:40 }}>🧮</div>
-      <div style={{ textAlign:"center" }}>
-        <div style={{ fontSize:24, fontWeight:900, marginBottom:8 }}>단꿈 <span style={{ color:"var(--accent)" }}>원가율</span> 계산기</div>
-        <div style={{ fontSize:14, color:"var(--text-sub)", lineHeight:1.7 }}>매장별 메뉴 원가율을 관리하고<br />손익분석기와 연동하세요</div>
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:"100vh", padding:"32px 24px", background:"var(--bg)" }}>
+      <div style={{
+        background:"var(--surface)", borderRadius:20, padding:"48px 32px 32px",
+        width:"100%", maxWidth:360, display:"flex", flexDirection:"column", alignItems:"center", gap:0,
+        boxShadow:"0 8px 40px rgba(0,0,0,0.4)",
+      }}>
+        {/* 로고 */}
+        <img src="https://danggum.net/wp-content/uploads/2024/03/단꿈-로고.png"
+          alt="단꿈" style={{ width:64, height:64, objectFit:"contain", marginBottom:20 }}
+          onError={e => { (e.target as HTMLImageElement).style.display="none"; }} />
+
+        {/* 타이틀 */}
+        <div style={{ fontSize:22, fontWeight:900, color:"var(--text)", marginBottom:10, textAlign:"center" }}>
+          단꿈 원가율 계산기
+        </div>
+        <div style={{ fontSize:13, color:"var(--text-sub)", lineHeight:1.7, textAlign:"center", marginBottom:32 }}>
+          메뉴별 원가율을 관리하고<br />적정 판매가를 찾아드려요
+        </div>
+
+        {/* 로그인 버튼 */}
+        <button onClick={onLogin} style={{
+          width:"100%", display:"flex", alignItems:"center", justifyContent:"center", gap:10,
+          background:"var(--surface2)", color:"var(--text)",
+          border:"1px solid var(--border)", borderRadius:12, padding:"14px 24px",
+          fontSize:15, fontWeight:700, fontFamily:"'Noto Sans KR',sans-serif", cursor:"pointer",
+          marginBottom:16,
+        }}>
+          <svg width="18" height="18" viewBox="0 0 48 48">
+            <path fill="#4285F4" d="M24 9.5c3.5 0 6.3 1.2 8.4 3.1l6.3-6.3C34.9 2.9 29.8.5 24 .5 14.8.5 7 6.1 3.6 14l7.4 5.7C12.8 13.1 17.9 9.5 24 9.5z"/>
+            <path fill="#34A853" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.5 2.8-2.2 5.2-4.7 6.8l7.3 5.7c4.3-4 6.8-9.9 6.8-16.5z"/>
+            <path fill="#FBBC05" d="M11 28.7c-.5-1.5-.8-3.1-.8-4.7s.3-3.2.8-4.7L3.6 14C1.3 18 0 22.4 0 24s1.3 6 3.6 10l7.4-5.3z"/>
+            <path fill="#EA4335" d="M24 47.5c6 0 11-2 14.7-5.3l-7.3-5.7c-2 1.3-4.6 2.1-7.4 2.1-6.1 0-11.2-3.6-13-8.9l-7.4 5.7C7 41.9 14.8 47.5 24 47.5z"/>
+          </svg>
+          Google로 시작하기
+        </button>
+
+        {/* 카카오톡 안내 */}
+        <div style={{ fontSize:12, color:"var(--text-sub)", textAlign:"center", lineHeight:1.7, marginBottom:32 }}>
+          카카오톡·네이버 앱에서는 로그인이 안 될 수 있어요.<br />
+          크롬 또는 사파리로 열어주세요.
+        </div>
+
+        {/* 프로모 버튼 */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, width:"100%" }}>
+          <a href="https://danggum.net/ex" target="_blank" style={{
+            display:"flex", alignItems:"center", justifyContent:"center", gap:6,
+            background:"rgba(61,214,140,0.12)", border:"1px solid rgba(61,214,140,0.3)",
+            borderRadius:10, padding:"11px 8px", textDecoration:"none",
+            fontSize:12, fontWeight:700, color:"var(--green)",
+          }}>
+            🥡 배달창업도 <strong>청년다방</strong>
+          </a>
+          <a href="https://danggum.net/agu" target="_blank" style={{
+            display:"flex", alignItems:"center", justifyContent:"center", gap:6,
+            background:"rgba(245,200,66,0.10)", border:"1px solid rgba(245,200,66,0.3)",
+            borderRadius:10, padding:"11px 8px", textDecoration:"none",
+            fontSize:12, fontWeight:700, color:"var(--accent)",
+          }}>
+            🐟 아구찜 <strong>전수창업</strong>
+          </a>
+        </div>
       </div>
-      <button onClick={onLogin} style={{ display:"flex", alignItems:"center", gap:10, background:"#fff", color:"#1f1f1f", border:"none", borderRadius:10, padding:"13px 24px", fontSize:14, fontWeight:700, fontFamily:"'Noto Sans KR',sans-serif", cursor:"pointer" }}>
-        <svg width="18" height="18" viewBox="0 0 48 48">
-          <path fill="#4285F4" d="M24 9.5c3.5 0 6.3 1.2 8.4 3.1l6.3-6.3C34.9 2.9 29.8.5 24 .5 14.8.5 7 6.1 3.6 14l7.4 5.7C12.8 13.1 17.9 9.5 24 9.5z"/>
-          <path fill="#34A853" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.5 2.8-2.2 5.2-4.7 6.8l7.3 5.7c4.3-4 6.8-9.9 6.8-16.5z"/>
-          <path fill="#FBBC05" d="M11 28.7c-.5-1.5-.8-3.1-.8-4.7s.3-3.2.8-4.7L3.6 14C1.3 18 0 22.4 0 24s1.3 6 3.6 10l7.4-5.3z"/>
-          <path fill="#EA4335" d="M24 47.5c6 0 11-2 14.7-5.3l-7.3-5.7c-2 1.3-4.6 2.1-7.4 2.1-6.1 0-11.2-3.6-13-8.9l-7.4 5.7C7 41.9 14.8 47.5 24 47.5z"/>
-        </svg>
-        Google로 시작하기
-      </button>
-      <div style={{ fontSize:12, color:"var(--text-sub)" }}>made by <a href="https://danggum.net" target="_blank" style={{ color:"var(--accent)", textDecoration:"none" }}>단꿈TV</a></div>
     </div>
   );
 }
@@ -521,56 +560,147 @@ function MenuCard({ menu, colorIdx, onChange, onDelete }: { menu: Menu; colorIdx
 
 // ── 요약 패널 ─────────────────────────────────────────────────────────────────
 function SummaryPanel({ menus }: { menus: Menu[] }) {
-  const withData = menus.filter(m => m.price > 0);
-  const avgRate = withData.length > 0
-    ? withData.reduce((s, m) => s + calcRate(calcMenuCost(m.ingredients||[]), m.price), 0) / withData.length : 0;
+  const withData = menus.filter(m => m.price > 0 && (m.ingredients||[]).length > 0);
+
+  if (menus.length === 0) return (
+    <div style={{ textAlign:"center", padding:"40px 0", color:"var(--text-sub)", fontSize:14 }}>원가 계산 탭에서 메뉴를 추가해주세요</div>
+  );
+
+  // 계산
+  const menuStats = withData.map((m, i) => {
+    const cost = calcMenuCost(m.ingredients||[]);
+    const rate = calcRate(cost, m.price);
+    return { m, cost, rate, color: MENU_COLORS[menus.indexOf(m) % MENU_COLORS.length] };
+  });
+
+  const avgRate = menuStats.length > 0
+    ? menuStats.reduce((s, x) => s + x.rate, 0) / menuStats.length : 0;
+  const maxRate = menuStats.length > 0 ? menuStats.reduce((a, b) => a.rate > b.rate ? a : b) : null;
+  const minRate = menuStats.length > 0 ? menuStats.reduce((a, b) => a.rate < b.rate ? a : b) : null;
+
+  // 단가 경고 재료 수집
+  const staleIngs: { menuName: string; ingName: string; days: number; price: number; date: string }[] = [];
+  menus.forEach(m => {
+    if (!m.priceDate) return;
+    const days = daysSince(m.priceDate);
+    if (days >= 30) {
+      (m.ingredients||[]).forEach(ing => {
+        if (ing.name) staleIngs.push({ menuName: m.name||"(이름 없음)", ingName: ing.name, days, price: ing.purchasePrice||0, date: m.priceDate||"" });
+      });
+    }
+  });
+
+  const maxBarRate = Math.max(...menuStats.map(x => x.rate), 40);
 
   return (
     <div>
-      {menus.length === 0 ? (
-        <div style={{ textAlign:"center", padding:"40px 0", color:"var(--text-sub)", fontSize:14 }}>원가 계산 탭에서 메뉴를 추가해주세요</div>
-      ) : (
-        <div style={S.card}>
-          <div style={{ fontSize:12, fontWeight:700, color:"var(--text-sub)", letterSpacing:"0.06em", marginBottom:16, textTransform:"uppercase" }}>전체 메뉴 원가율 비교</div>
-          <div style={{ overflowX:"auto" }}>
-            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
-              <thead>
-                <tr>{["메뉴명","판매가","원가","원가율","마진","평가"].map(h => (
-                  <th key={h} style={{ textAlign:"left", padding:"8px 10px", fontSize:10, fontWeight:700, color:"var(--text-sub)", borderBottom:"1px solid var(--border)", letterSpacing:"0.05em", whiteSpace:"nowrap" }}>{h}</th>
-                ))}</tr>
-              </thead>
-              <tbody>
-                {menus.map((m, i) => {
-                  const cost = calcMenuCost(m.ingredients||[]);
-                  const rate = calcRate(cost, m.price);
-                  const col = MENU_COLORS[i % MENU_COLORS.length];
-                  return (
-                    <tr key={m.id}>
-                      <td style={{ padding:"11px 10px", borderBottom:"1px solid var(--border)" }}>
-                        <span style={{ display:"inline-block", width:8, height:8, borderRadius:"50%", background:col, marginRight:8 }} />{m.name || "(이름 없음)"}
-                      </td>
-                      <td style={{ padding:"11px 10px", borderBottom:"1px solid var(--border)", fontFamily:"'DM Mono',monospace", fontSize:12 }}>{m.price ? `${fmt(m.price)}원` : "—"}</td>
-                      <td style={{ padding:"11px 10px", borderBottom:"1px solid var(--border)", fontFamily:"'DM Mono',monospace", fontSize:12 }}>{cost > 0 ? `${fmt(cost)}원` : "—"}</td>
-                      <td style={{ padding:"11px 10px", borderBottom:"1px solid var(--border)" }}>
-                        {rate > 0 ? <span style={{ display:"inline-block", padding:"3px 10px", borderRadius:99, fontFamily:"'DM Mono',monospace", fontSize:12, background:`${rateColor(rate)}22`, color:rateColor(rate) }}>{rate.toFixed(1)}%</span> : "—"}
-                      </td>
-                      <td style={{ padding:"11px 10px", borderBottom:"1px solid var(--border)", fontFamily:"'DM Mono',monospace", fontSize:12 }}>{m.price > cost && cost > 0 ? `${fmt(m.price - cost)}원` : "—"}</td>
-                      <td style={{ padding:"11px 10px", borderBottom:"1px solid var(--border)", fontSize:12 }}>{rateLabel(rate)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+      {/* ① 바 차트 */}
+      <div style={S.card}>
+        <div style={{ fontSize:12, fontWeight:700, color:"var(--text-sub)", letterSpacing:"0.06em", marginBottom:18, textTransform:"uppercase" }}>① 메뉴별 원가율</div>
+        {menuStats.length === 0 ? (
+          <div style={{ fontSize:13, color:"var(--text-sub)" }}>판매가와 재료가 입력된 메뉴가 없습니다</div>
+        ) : menuStats.map(({ m, cost, rate, color }) => (
+          <div key={m.id} style={{ marginBottom:14 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:5 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <span style={{ width:8, height:8, borderRadius:"50%", background:color, flexShrink:0, display:"inline-block" }} />
+                <span style={{ fontSize:13, fontWeight:600 }}>{m.name||"(이름 없음)"}</span>
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:12, color:"var(--text-sub)" }}>{fmt(cost)}원</span>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:14, fontWeight:700, color:rateColor(rate) }}>{rate.toFixed(1)}%</span>
+                <span style={{ fontSize:12 }}>{rateLabel(rate)}</span>
+              </div>
+            </div>
+            {/* 바 */}
+            <div style={{ position:"relative", height:8, background:"var(--border)", borderRadius:99, overflow:"visible" }}>
+              <div style={{ height:"100%", width:`${Math.min((rate/maxBarRate)*100, 100)}%`, background:rateColor(rate), borderRadius:99, transition:"width 0.4s" }} />
+              {/* 목표선 30% */}
+              <div style={{ position:"absolute", top:-4, left:`${(30/maxBarRate)*100}%`, width:2, height:16, background:"var(--accent)", borderRadius:99 }} />
+            </div>
           </div>
+        ))}
+        {/* 범례 */}
+        <div style={{ display:"flex", justifyContent:"flex-end", gap:16, marginTop:8 }}>
+          <span style={{ fontSize:10, color:"var(--accent)" }}>| 목표 30%</span>
+          <span style={{ fontSize:10, color:"var(--green)" }}>● 30% 이하 양호</span>
+          <span style={{ fontSize:10, color:"#f5c842" }}>● 35% 이하 주의</span>
+          <span style={{ fontSize:10, color:"var(--red)" }}>● 35% 초과 개선</span>
+        </div>
+      </div>
+
+      {/* ② 수익성 요약 카드 */}
+      {menuStats.length > 0 && (
+        <div style={S.card}>
+          <div style={{ fontSize:12, fontWeight:700, color:"var(--text-sub)", letterSpacing:"0.06em", marginBottom:16, textTransform:"uppercase" }}>② 수익성 요약</div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:16 }}>
+            <div style={{ background:"var(--surface2)", borderRadius:10, padding:"14px 16px", border:"1px solid var(--border)", textAlign:"center" }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:4 }}>평균 원가율</div>
+              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:22, color:rateColor(avgRate), fontWeight:600 }}>{avgRate.toFixed(1)}%</div>
+              <div style={{ fontSize:11, marginTop:4 }}>{rateLabel(avgRate)}</div>
+            </div>
+            <div style={{ background:"var(--surface2)", borderRadius:10, padding:"14px 16px", border:`1px solid ${maxRate ? rateColor(maxRate.rate)+"44" : "var(--border)"}`, textAlign:"center" }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:4 }}>⚠️ 가장 위험한 메뉴</div>
+              <div style={{ fontSize:13, fontWeight:700, marginBottom:4, color:"var(--text)" }}>{maxRate?.m.name||"—"}</div>
+              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:18, color: maxRate ? rateColor(maxRate.rate) : "var(--text-sub)" }}>{maxRate ? `${maxRate.rate.toFixed(1)}%` : "—"}</div>
+            </div>
+            <div style={{ background:"var(--surface2)", borderRadius:10, padding:"14px 16px", border:`1px solid ${minRate ? rateColor(minRate.rate)+"44" : "var(--border)"}`, textAlign:"center" }}>
+              <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:4 }}>✅ 가장 효율적 메뉴</div>
+              <div style={{ fontSize:13, fontWeight:700, marginBottom:4, color:"var(--text)" }}>{minRate?.m.name||"—"}</div>
+              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:18, color: minRate ? rateColor(minRate.rate) : "var(--text-sub)" }}>{minRate ? `${minRate.rate.toFixed(1)}%` : "—"}</div>
+            </div>
+          </div>
+          {/* 목표 대비 */}
           {avgRate > 0 && (
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, background:"var(--surface2)", borderRadius:10, padding:"14px 16px", border:"1px solid var(--border)", marginTop:16 }}>
-              <div style={{ textAlign:"center" }}><div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:4 }}>전체 메뉴 수</div><div style={{ fontFamily:"'DM Mono',monospace", fontSize:20 }}>{withData.length}개</div></div>
-              <div style={{ textAlign:"center" }}><div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:4 }}>평균 원가율</div><div style={{ fontFamily:"'DM Mono',monospace", fontSize:20, color:rateColor(avgRate) }}>{avgRate.toFixed(1)}%</div></div>
-              <div style={{ textAlign:"center" }}><div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:4 }}>평가</div><div style={{ fontSize:16 }}>{rateLabel(avgRate)}</div></div>
+            <div style={{ background: avgRate <= 30 ? "rgba(61,214,140,0.08)" : "rgba(255,92,92,0.08)", border:`1px solid ${avgRate <= 30 ? "rgba(61,214,140,0.3)" : "rgba(255,92,92,0.3)"}`, borderRadius:10, padding:"12px 16px", fontSize:13, color:"var(--text-sub)" }}>
+              목표 원가율(30%) 대비
+              <strong style={{ color: avgRate <= 30 ? "var(--green)" : "var(--red)", marginLeft:8 }}>
+                {avgRate <= 30 ? `-${(30-avgRate).toFixed(1)}%p 여유` : `+${(avgRate-30).toFixed(1)}%p 초과`}
+              </strong>
+              {avgRate > 30 && <span style={{ marginLeft:8 }}>→ 원가 절감 또는 판매가 조정 필요</span>}
             </div>
           )}
         </div>
       )}
+
+      {/* ③ 단가 경고 */}
+      <div style={S.card}>
+        <div style={{ fontSize:12, fontWeight:700, color:"var(--text-sub)", letterSpacing:"0.06em", marginBottom:16, textTransform:"uppercase" }}>③ 단가 기준일 경과 경고</div>
+        {staleIngs.length === 0 ? (
+          <div style={{ fontSize:13, color:"var(--green)", display:"flex", alignItems:"center", gap:8 }}>
+            <span>✅</span>
+            <span>모든 메뉴의 단가 기준일이 30일 이내입니다.</span>
+          </div>
+        ) : (
+          <div>
+            <div style={{ fontSize:12, color:"var(--text-sub)", marginBottom:12 }}>
+              아래 메뉴의 재료 단가가 오래됐습니다. 실제 원가율과 차이가 날 수 있어요.
+            </div>
+            {/* 메뉴별 그룹핑 */}
+            {Array.from(new Set(staleIngs.map(x => x.menuName))).map(menuName => {
+              const items = staleIngs.filter(x => x.menuName === menuName);
+              const days = items[0].days;
+              const badge = dateBadge(items[0].date);
+              return (
+                <div key={menuName} style={{ marginBottom:12, background:"var(--surface2)", borderRadius:10, padding:"12px 14px", border:`1px solid ${days >= 60 ? "rgba(255,92,92,0.3)" : "rgba(245,200,66,0.3)"}` }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
+                    <span style={{ fontSize:13, fontWeight:700 }}>{menuName}</span>
+                    {badge && <span style={{ fontSize:11, color:badge.color }}>{badge.text}</span>}
+                  </div>
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                    {items.map((item, i) => (
+                      <span key={i} style={{ fontSize:11, background:"var(--surface)", border:"1px solid var(--border)", borderRadius:6, padding:"3px 10px", color:"var(--text-sub)" }}>
+                        {item.ingName}
+                        {item.price > 0 && <span style={{ marginLeft:4, fontFamily:"'DM Mono',monospace", color:days>=60?"var(--red)":"#f5c842" }}>{fmt(item.price)}원 기준</span>}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
