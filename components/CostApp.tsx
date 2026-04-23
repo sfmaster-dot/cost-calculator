@@ -416,9 +416,18 @@ function MenuCard({ menu, colorIdx, onChange, onDelete }: { menu: Menu; colorIdx
 
   return (
     <div style={{ ...S.card, borderLeft:`3px solid ${color}` }}>
-      {/* 메뉴명·삭제 */}
-      <div style={{ display:"flex", gap:8, marginBottom:14 }}>
+      {/* 메뉴명·기준날짜·삭제 */}
+      <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:14 }}>
         <input style={{ ...S.input, flex:1, fontSize:15, fontWeight:700 }} placeholder="메뉴 이름 (예: 불향쭈꾸미 2인)" value={menu.name} onChange={e => onChange({ ...menu, name: e.target.value })} />
+        <div style={{ display:"flex", flexDirection:"column", gap:3, flexShrink:0 }}>
+          <span style={{ fontSize:9, fontWeight:700, color:"var(--text-sub)", letterSpacing:"0.04em" }}>기준날짜</span>
+          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+            <input type="date" style={{ ...S.input, width:130, fontSize:11, padding:"5px 8px" }}
+              value={menu.priceDate || TODAY_STR}
+              onChange={e => onChange({ ...menu, priceDate: e.target.value })} />
+            {(() => { const b = dateBadge(menu.priceDate||""); return b ? <span style={{ fontSize:11, color:b.color, whiteSpace:"nowrap" }}>{b.text}</span> : null; })()}
+          </div>
+        </div>
         <button onClick={() => onDelete(menu.id)} style={{ ...S.btn("danger"), padding:"9px 12px", flexShrink:0 }}>✕</button>
       </div>
 
@@ -446,40 +455,30 @@ function MenuCard({ menu, colorIdx, onChange, onDelete }: { menu: Menu; colorIdx
 
       {/* 재료 헤더 */}
       <div style={{ display:"grid", gridTemplateColumns:"1.8fr 80px 80px 60px 72px 80px 32px", gap:5, marginBottom:6 }}>
-        {["재료명","구매량(g)","구매가(원)","수율(%)","사용량(g)","100g단가",""].map((h,i) => (
+        {["재료명","구매량(g)","구매가(원)","수율(%)","사용량(g)","원가(원)",""].map((h,i) => (
           <div key={i} style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", paddingLeft: i < 6 ? 6 : 0 }}>{h}</div>
         ))}
       </div>
 
       {/* 재료 목록 */}
       {(menu.ingredients || []).map((ing, idx) => {
-        const up = calcUnitPrice(ing);
-        const badge = dateBadge(ing.priceDate);
+        const ingCost = calcIngCost(ing);
         return (
-          <div key={ing.id}>
-            <div style={{ display:"grid", gridTemplateColumns:"1.8fr 80px 80px 60px 72px 80px 32px", gap:5, marginBottom:4, alignItems:"center" }}>
-              <input style={S.input} placeholder="재료명" value={ing.name} onChange={e => updateIng(idx,"name",e.target.value)} />
-              <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }}
-                placeholder="5400" value={ing.purchaseQty||""} onChange={e => updateIng(idx,"purchaseQty",e.target.value)} />
-              <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }}
-                placeholder="64000" value={ing.purchasePrice||""} onChange={e => updateIng(idx,"purchasePrice",e.target.value)} />
-              <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }}
-                placeholder="100" value={ing.yieldRate||""} onChange={e => updateIng(idx,"yieldRate",e.target.value)} />
-              <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }}
-                placeholder="300" value={ing.amount||""} onChange={e => updateIng(idx,"amount",e.target.value)} />
-              {/* 100g단가 자동 계산 표시 */}
-              <div style={{ background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:8, padding:"8px 10px", textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12, color: up > 0 ? "var(--accent)" : "var(--text-sub)" }}>
-                {up > 0 ? `${fmtDec(up)}원` : "—"}
-              </div>
-              <button onClick={() => removeIng(idx)} style={{ width:32, height:34, borderRadius:6, border:"1px solid var(--border)", background:"transparent", color:"var(--text-sub)", fontSize:14, cursor:"pointer" }}>✕</button>
+          <div key={ing.id} style={{ display:"grid", gridTemplateColumns:"1.8fr 80px 80px 60px 72px 80px 32px", gap:5, marginBottom:6, alignItems:"center" }}>
+            <input style={S.input} placeholder="재료명" value={ing.name} onChange={e => updateIng(idx,"name",e.target.value)} />
+            <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }}
+              placeholder="5400" value={ing.purchaseQty||""} onChange={e => updateIng(idx,"purchaseQty",e.target.value)} />
+            <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }}
+              placeholder="64000" value={ing.purchasePrice||""} onChange={e => updateIng(idx,"purchasePrice",e.target.value)} />
+            <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }}
+              placeholder="100" value={ing.yieldRate||""} onChange={e => updateIng(idx,"yieldRate",e.target.value)} />
+            <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }}
+              placeholder="300" value={ing.amount||""} onChange={e => updateIng(idx,"amount",e.target.value)} />
+            {/* 사용량 기반 원가 자동 계산 */}
+            <div style={{ background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:8, padding:"8px 10px", textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12, color: ingCost > 0 ? "var(--green)" : "var(--text-sub)" }}>
+              {ingCost > 0 ? `${fmtDec(ingCost)}원` : "—"}
             </div>
-            {/* 날짜 입력 + 경과 경고 */}
-            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8, paddingLeft:4 }}>
-              <span style={{ fontSize:10, color:"var(--text-sub)", whiteSpace:"nowrap" }}>기준날짜</span>
-              <input type="date" style={{ ...S.input, width:140, fontSize:11, padding:"5px 8px" }}
-                value={ing.priceDate || TODAY_STR} onChange={e => updateIng(idx,"priceDate",e.target.value)} />
-              {badge && <span style={{ fontSize:11, color:badge.color, whiteSpace:"nowrap" }}>{badge.text}</span>}
-            </div>
+            <button onClick={() => removeIng(idx)} style={{ width:32, height:34, borderRadius:6, border:"1px solid var(--border)", background:"transparent", color:"var(--text-sub)", fontSize:14, cursor:"pointer" }}>✕</button>
           </div>
         );
       })}
