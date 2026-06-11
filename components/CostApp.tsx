@@ -107,6 +107,29 @@ const S = {
   } as React.CSSProperties),
 };
 
+// ── 카운트업 애니메이션 훅 ─────────────────────────────────────────────────────
+function useCountUp(target: number, duration = 600) {
+  const [display, setDisplay] = useState(target);
+  const prevRef = useRef(target);
+  useEffect(() => {
+    const from = prevRef.current;
+    const to = target;
+    prevRef.current = target;
+    if (from === to) { setDisplay(to); return; }
+    const start = performance.now();
+    let raf: number;
+    const tick = (now: number) => {
+      const t = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      setDisplay(Math.round(from + (to - from) * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return display;
+}
+
 // ── Toast ─────────────────────────────────────────────────────────────────────
 function useToast() {
   const [msg, setMsg] = useState("");
@@ -711,7 +734,7 @@ function ReversePanel({ menus }: { menus: Menu[] }) {
   const [delivFee, setDelivFee] = useState(7.8);      // 상생요금제 상위 35% 기준
   const [payFee, setPayFee] = useState(3);            // 결제정산이용료
   const [deliveryCost, setDeliveryCost] = useState(3400); // 1등급 점주 부담 배달비
-  const [packCost, setPackCost] = useState(0);        // placeholder 500
+  const [packCost, setPackCost] = useState(500);      // 기본 500원
 
   // 식재료만 고려한 최소 판매가
   const basic = targetRate > 0 && cost > 0 ? cost / (targetRate / 100) : 0;
@@ -811,7 +834,7 @@ function ReversePanel({ menus }: { menus: Menu[] }) {
       <div style={{ background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"24px 20px" }}>
         <div style={{ textAlign:"center", marginBottom: minPrice > 0 ? 20 : 0 }}>
           <div style={{ fontSize:12, color:"var(--text-sub)", marginBottom:6 }}>식재료만 고려한 최소 판매가</div>
-          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:34, color:"var(--accent)" }}>{minPrice > 0 ? `${fmt(minPrice)}원~` : "—"}</div>
+          <AnimatedPrice price={minPrice} />
           {minPrice > 0 && <div style={{ fontSize:11, color:"var(--text-sub)", marginTop:4 }}>식재료 {fmt(cost)}원 ÷ 목표 원가율 {targetRate}% · 500원 단위 올림</div>}
         </div>
 
@@ -865,6 +888,23 @@ function ReversePanel({ menus }: { menus: Menu[] }) {
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── 애니메이션 가격 표시 ───────────────────────────────────────────────────────
+function AnimatedPrice({ price }: { price: number }) {
+  const animated = useCountUp(price);
+  if (price <= 0) return <div style={{ fontFamily:"'DM Mono',monospace", fontSize:34, color:"var(--text-sub)" }}>—</div>;
+  return (
+    <div key={price} className="price-anim" style={{
+      fontFamily:"'Bebas Neue', sans-serif",
+      fontSize:64, lineHeight:1,
+      color:"var(--accent)",
+      letterSpacing:"0.03em",
+      textShadow:"0 0 28px rgba(245,200,66,0.35)",
+    }}>
+      {animated.toLocaleString("ko-KR")}<span style={{ fontSize:32, marginLeft:4 }}>원~</span>
     </div>
   );
 }
