@@ -707,18 +707,22 @@ function SummaryPanel({ menus }: { menus: Menu[] }) {
 function ReversePanel({ menus }: { menus: Menu[] }) {
   const [cost, setCost] = useState(0);
   const [selectedMenuId, setSelectedMenuId] = useState("");
-  const [targetRate, setTargetRate] = useState(30);
+  const [targetRate, setTargetRate] = useState(0);    // placeholder 35
   const [delivFee, setDelivFee] = useState(7.8);      // 상생요금제 상위 35% 기준
   const [deliveryCost, setDeliveryCost] = useState(3400); // 1등급 점주 부담 배달비
-  const [packCost, setPackCost] = useState(0);
+  const [packCost, setPackCost] = useState(0);        // placeholder 500
 
+  // 식재료만 고려한 최소 판매가
   const basic = targetRate > 0 && cost > 0 ? cost / (targetRate / 100) : 0;
-  // 수수료·배달비는 부가세 별도 → ×1.1 적용
-  const feeReal = (delivFee * 1.1) / 100;
-  const full = targetRate > 0 && cost > 0 && feeReal < 1
-    ? ((cost + packCost) / (targetRate / 100) + deliveryCost * 1.1) / (1 - feeReal)
-    : 0;
-  const rounded = Math.ceil(full / 500) * 500;
+  const minPrice = basic > 0 ? Math.ceil(basic / 500) * 500 : 0;
+
+  // 최소 판매가 기준 비용 구성 비율 (수수료·배달비는 부가세 별도 → ×1.1)
+  const foodPct = minPrice > 0 ? (cost / minPrice) * 100 : 0;
+  const feePct = delivFee * 1.1;                                        // 판매가 비례
+  const deliveryPct = minPrice > 0 ? (deliveryCost * 1.1 / minPrice) * 100 : 0;
+  const packPct = minPrice > 0 ? (packCost / minPrice) * 100 : 0;
+  const totalPct = foodPct + feePct + deliveryPct + packPct;
+  const remainPct = 100 - totalPct;
 
   const menusWithCost = menus.filter(m => (m.ingredients||[]).length > 0);
 
@@ -768,7 +772,7 @@ function ReversePanel({ menus }: { menus: Menu[] }) {
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:10 }}>
           <div>
             <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>목표 원가율 (%)</div>
-            <div style={{ position:"relative" }}><input type="number" style={{ ...S.input, fontFamily:"'DM Mono',monospace", paddingRight:28 }} value={targetRate} onChange={e => setTargetRate(parseFloat(e.target.value)||30)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>%</span></div>
+            <div style={{ position:"relative" }}><input type="number" placeholder="35" style={{ ...S.input, fontFamily:"'DM Mono',monospace", paddingRight:28 }} value={targetRate||""} onChange={e => setTargetRate(parseFloat(e.target.value)||0)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>%</span></div>
           </div>
           <div>
             <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>중개수수료 (%)</div>
@@ -790,13 +794,54 @@ function ReversePanel({ menus }: { menus: Menu[] }) {
         </div>
       </div>
 
-      <div style={{ background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"24px 20px", textAlign:"center" }}>
-        <div style={{ fontSize:12, color:"var(--text-sub)", marginBottom:6 }}>식재료만 고려한 최소 판매가</div>
-        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:34, color:"var(--accent)", marginBottom:16 }}>{basic > 0 ? `${fmt(Math.ceil(basic/500)*500)}원~` : "—"}</div>
-        <div style={{ height:1, background:"var(--border)", margin:"0 0 16px" }} />
-        <div style={{ fontSize:12, color:"var(--text-sub)", marginBottom:6 }}>중개수수료·배달비·포장비 포함 권장 판매가</div>
-        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:26, color:"var(--text)", marginBottom:8 }}>{full > 0 ? `${fmt(rounded)}원~` : "—"}</div>
-        {full > 0 && <div style={{ fontSize:11, color:"var(--text-sub)" }}>식재료 {fmt(cost)}원 + 포장재 {fmt(packCost)}원 · 수수료 {delivFee}%×1.1 · 배달비 {fmt(deliveryCost)}원×1.1 반영 · 500원 단위 올림</div>}
+      {/* 결과 — 최소 판매가 + 비용 구성 */}
+      <div style={{ background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"24px 20px" }}>
+        <div style={{ textAlign:"center", marginBottom: minPrice > 0 ? 20 : 0 }}>
+          <div style={{ fontSize:12, color:"var(--text-sub)", marginBottom:6 }}>식재료만 고려한 최소 판매가</div>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:34, color:"var(--accent)" }}>{minPrice > 0 ? `${fmt(minPrice)}원~` : "—"}</div>
+          {minPrice > 0 && <div style={{ fontSize:11, color:"var(--text-sub)", marginTop:4 }}>식재료 {fmt(cost)}원 ÷ 목표 원가율 {targetRate}% · 500원 단위 올림</div>}
+        </div>
+
+        {minPrice > 0 && (
+          <>
+            <div style={{ height:1, background:"var(--border)", margin:"0 0 18px" }} />
+            <div style={{ fontSize:12, fontWeight:700, color:"var(--text-sub)", letterSpacing:"0.05em", marginBottom:14, textTransform:"uppercase" }}>이 판매가로 배달 판매 시 비용 구성</div>
+
+            {/* 비용 항목 */}
+            {[
+              ["식재료", `${fmt(cost)}원`, foodPct, "var(--accent)"],
+              ["중개수수료 (×1.1)", `${delivFee}% → ${(delivFee*1.1).toFixed(2)}%`, feePct, "#60a5fa"],
+              ["점주 부담 배달비 (×1.1)", `${fmt(deliveryCost*1.1)}원`, deliveryPct, "#c084fc"],
+              ["포장재·기타", `${fmt(packCost)}원`, packPct, "#f472b6"],
+            ].map(([label, detail, pct, color]) => (
+              <div key={label as string} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
+                <span style={{ width:150, fontSize:12, color:"var(--text)", flexShrink:0 }}>{label}</span>
+                <div style={{ flex:1, height:7, background:"var(--border)", borderRadius:99, overflow:"hidden" }}>
+                  <div style={{ height:"100%", width:`${Math.min(pct as number, 100)}%`, background:color as string, borderRadius:99, transition:"width 0.4s" }} />
+                </div>
+                <span style={{ width:54, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:13, color:color as string }}>{(pct as number).toFixed(1)}%</span>
+                <span style={{ width:120, textAlign:"right", fontSize:10, color:"var(--text-sub)" }}>{detail}</span>
+              </div>
+            ))}
+
+            {/* 합계 */}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginTop:16 }}>
+              <div style={{ background:"var(--surface)", border:`1px solid ${totalPct > 70 ? "rgba(255,92,92,0.4)" : "var(--border)"}`, borderRadius:10, padding:"14px 16px", textAlign:"center" }}>
+                <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:4 }}>총 비용 비율</div>
+                <div style={{ fontFamily:"'DM Mono',monospace", fontSize:24, color: totalPct > 70 ? "var(--red)" : "var(--text)" }}>{totalPct.toFixed(1)}%</div>
+              </div>
+              <div style={{ background:"var(--surface)", border:`1px solid ${remainPct < 30 ? "rgba(255,92,92,0.4)" : "rgba(61,214,140,0.3)"}`, borderRadius:10, padding:"14px 16px", textAlign:"center" }}>
+                <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:4 }}>남는 몫 (인건비·임대료·이익)</div>
+                <div style={{ fontFamily:"'DM Mono',monospace", fontSize:24, color: remainPct < 30 ? "var(--red)" : "var(--green)" }}>{remainPct.toFixed(1)}%</div>
+              </div>
+            </div>
+            {remainPct < 30 && (
+              <div style={{ fontSize:12, color:"var(--red)", marginTop:12, textAlign:"center" }}>
+                ⚠️ 남는 몫이 30% 미만입니다. 인건비·임대료까지 빼면 적자 위험이 큽니다. 판매가 인상 또는 원가 절감을 검토하세요.
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
