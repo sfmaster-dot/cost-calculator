@@ -823,8 +823,8 @@ function ReversePanel({ menus }: { menus: Menu[] }) {
             {/* 비용 항목 */}
             {[
               ["식재료", `${fmt(cost)}원`, foodPct, "var(--accent)"],
-              ["중개수수료 (×1.1)", `${delivFee}% → ${(delivFee*1.1).toFixed(2)}%`, feePct, "#60a5fa"],
-              ["결제정산이용료 (×1.1)", `${payFee}% → ${(payFee*1.1).toFixed(2)}%`, payPct, "#3dd68c"],
+              ["중개수수료 (×1.1)", `${fmt(minPrice * feePct / 100)}원`, feePct, "#60a5fa"],
+              ["결제정산이용료 (×1.1)", `${fmt(minPrice * payPct / 100)}원`, payPct, "#3dd68c"],
               ["점주 부담 배달비 (×1.1)", `${fmt(deliveryCost*1.1)}원`, deliveryPct, "#c084fc"],
               ["포장재·기타", `${fmt(packCost)}원`, packPct, "#f472b6"],
             ].map(([label, detail, pct, color]) => (
