@@ -709,6 +709,7 @@ function ReversePanel({ menus }: { menus: Menu[] }) {
   const [selectedMenuId, setSelectedMenuId] = useState("");
   const [targetRate, setTargetRate] = useState(0);    // placeholder 35
   const [delivFee, setDelivFee] = useState(7.8);      // 상생요금제 상위 35% 기준
+  const [payFee, setPayFee] = useState(3);            // 결제정산이용료
   const [deliveryCost, setDeliveryCost] = useState(3400); // 1등급 점주 부담 배달비
   const [packCost, setPackCost] = useState(0);        // placeholder 500
 
@@ -719,10 +720,17 @@ function ReversePanel({ menus }: { menus: Menu[] }) {
   // 최소 판매가 기준 비용 구성 비율 (수수료·배달비는 부가세 별도 → ×1.1)
   const foodPct = minPrice > 0 ? (cost / minPrice) * 100 : 0;
   const feePct = delivFee * 1.1;                                        // 판매가 비례
+  const payPct = payFee * 1.1;                                          // 판매가 비례
   const deliveryPct = minPrice > 0 ? (deliveryCost * 1.1 / minPrice) * 100 : 0;
   const packPct = minPrice > 0 ? (packCost / minPrice) * 100 : 0;
-  const totalPct = foodPct + feePct + deliveryPct + packPct;
+  const totalPct = foodPct + feePct + payPct + deliveryPct + packPct;
   const remainPct = 100 - totalPct;
+
+  // 전체 배달경비 (식재료 제외 — 수수료·결제·배달비·포장재)
+  const deliveryExpense = minPrice > 0
+    ? minPrice * (feePct + payPct) / 100 + deliveryCost * 1.1 + packCost
+    : 0;
+  const deliveryExpensePct = feePct + payPct + deliveryPct + packPct;
 
   const menusWithCost = menus.filter(m => (m.ingredients||[]).length > 0);
 
@@ -769,7 +777,7 @@ function ReversePanel({ menus }: { menus: Menu[] }) {
 
       <div style={S.card}>
         <div style={{ fontSize:12, fontWeight:700, color:"var(--text-sub)", marginBottom:14, letterSpacing:"0.06em", textTransform:"uppercase" }}>목표 설정</div>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:10 }}>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(140px, 1fr))", gap:10 }}>
           <div>
             <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>목표 원가율 (%)</div>
             <div style={{ position:"relative" }}><input type="number" placeholder="35" style={{ ...S.input, fontFamily:"'DM Mono',monospace", paddingRight:28 }} value={targetRate||""} onChange={e => setTargetRate(parseFloat(e.target.value)||0)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>%</span></div>
@@ -778,6 +786,11 @@ function ReversePanel({ menus }: { menus: Menu[] }) {
             <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>중개수수료 (%)</div>
             <div style={{ position:"relative" }}><input type="number" step="0.1" style={{ ...S.input, fontFamily:"'DM Mono',monospace", paddingRight:28 }} value={delivFee} onChange={e => setDelivFee(parseFloat(e.target.value)||0)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>%</span></div>
             <div style={{ fontSize:9, color:"var(--text-sub)", marginTop:3 }}>상생요금제 상위35% 7.8%</div>
+          </div>
+          <div>
+            <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>결제정산이용료 (%)</div>
+            <div style={{ position:"relative" }}><input type="number" step="0.1" style={{ ...S.input, fontFamily:"'DM Mono',monospace", paddingRight:28 }} value={payFee} onChange={e => setPayFee(parseFloat(e.target.value)||0)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>%</span></div>
+            <div style={{ fontSize:9, color:"var(--text-sub)", marginTop:3 }}>배민 기준 3%</div>
           </div>
           <div>
             <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>점주 부담 배달비 (원)</div>
@@ -790,7 +803,7 @@ function ReversePanel({ menus }: { menus: Menu[] }) {
           </div>
         </div>
         <div style={{ fontSize:11, color:"var(--text-sub)", marginTop:10 }}>
-          ※ 중개수수료·배달비는 부가세 별도라 <strong style={{ color:"var(--accent)" }}>×1.1</strong>로 계산합니다.
+          ※ 중개수수료·결제정산이용료·배달비는 부가세 별도라 <strong style={{ color:"var(--accent)" }}>×1.1</strong>로 계산합니다.
         </div>
       </div>
 
@@ -811,6 +824,7 @@ function ReversePanel({ menus }: { menus: Menu[] }) {
             {[
               ["식재료", `${fmt(cost)}원`, foodPct, "var(--accent)"],
               ["중개수수료 (×1.1)", `${delivFee}% → ${(delivFee*1.1).toFixed(2)}%`, feePct, "#60a5fa"],
+              ["결제정산이용료 (×1.1)", `${payFee}% → ${(payFee*1.1).toFixed(2)}%`, payPct, "#3dd68c"],
               ["점주 부담 배달비 (×1.1)", `${fmt(deliveryCost*1.1)}원`, deliveryPct, "#c084fc"],
               ["포장재·기타", `${fmt(packCost)}원`, packPct, "#f472b6"],
             ].map(([label, detail, pct, color]) => (
@@ -824,8 +838,16 @@ function ReversePanel({ menus }: { menus: Menu[] }) {
               </div>
             ))}
 
+            {/* 전체 배달경비 */}
+            <div style={{ background:"rgba(96,165,250,0.08)", border:"1px solid rgba(96,165,250,0.3)", borderRadius:10, padding:"12px 16px", marginTop:14, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <span style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>🚴 전체 배달경비 (수수료+결제+배달비+포장재)</span>
+              <span style={{ fontFamily:"'DM Mono',monospace", fontSize:16, color:"#60a5fa" }}>
+                {fmt(deliveryExpense)}원 <span style={{ fontSize:13 }}>({deliveryExpensePct.toFixed(1)}%)</span>
+              </span>
+            </div>
+
             {/* 합계 */}
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginTop:16 }}>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginTop:10 }}>
               <div style={{ background:"var(--surface)", border:`1px solid ${totalPct > 70 ? "rgba(255,92,92,0.4)" : "var(--border)"}`, borderRadius:10, padding:"14px 16px", textAlign:"center" }}>
                 <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:4 }}>총 비용 비율</div>
                 <div style={{ fontFamily:"'DM Mono',monospace", fontSize:24, color: totalPct > 70 ? "var(--red)" : "var(--text)" }}>{totalPct.toFixed(1)}%</div>
