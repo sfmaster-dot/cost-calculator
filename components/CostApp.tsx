@@ -222,6 +222,82 @@ export default function CostApp() {
     toast(`📋 ${count}개 메뉴가 복사됐습니다`);
   }
 
+  // ── 데이터 내보내기 (JSON 다운로드) ──
+  function handleExport() {
+    if (!selectedStore || menus.length === 0) { toast("내보낼 메뉴가 없습니다"); return; }
+    const data = {
+      app: "단꿈 원가율 계산기",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      storeName: selectedStore.name,
+      menus: menus.map(m => ({
+        name: m.name,
+        price: m.price,
+        targetRate: m.targetRate,
+        priceDate: m.priceDate || "",
+        ingredients: (m.ingredients||[]).map(i => ({
+          name: i.name, amount: i.amount,
+          purchaseQty: i.purchaseQty, purchasePrice: i.purchasePrice,
+          yieldRate: i.yieldRate,
+        })),
+      })),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const dateStr = new Date().toISOString().slice(0,10);
+    a.href = url;
+    a.download = `${selectedStore.name}_원가데이터_${dateStr}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast(`💾 ${menus.length}개 메뉴를 내보냈습니다`);
+  }
+
+  // ── 데이터 가져오기 (JSON 업로드) ──
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // 같은 파일 재선택 가능하게
+    if (!file || !user || !selectedStore) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      const importMenus = Array.isArray(data) ? data : data.menus;
+      if (!Array.isArray(importMenus) || importMenus.length === 0) {
+        toast("⚠️ 메뉴 데이터를 찾을 수 없습니다"); return;
+      }
+      if (!confirm(`${importMenus.length}개 메뉴를 "${selectedStore.name}"에 추가할까요?\n(기존 메뉴는 유지됩니다)`)) return;
+      let count = 0;
+      for (const m of importMenus) {
+        if (!m || typeof m !== "object") continue;
+        const menu: Menu = {
+          id: "",
+          name: String(m.name || ""),
+          price: Number(m.price) || 0,
+          targetRate: Number(m.targetRate) || 30,
+          priceDate: typeof m.priceDate === "string" ? m.priceDate : TODAY_STR,
+          ingredients: Array.isArray(m.ingredients) ? m.ingredients.map((i: any) => ({
+            id: genId(),
+            name: String(i?.name || ""),
+            amount: Number(i?.amount) || 0,
+            purchaseQty: Number(i?.purchaseQty) || 0,
+            purchasePrice: Number(i?.purchasePrice) || 0,
+            yieldRate: Number(i?.yieldRate) || 100,
+            priceDate: TODAY_STR,
+          })) : [],
+        };
+        await saveMenu(user.uid, selectedStore.id, menu);
+        count++;
+      }
+      const fresh = await getMenus(user.uid, selectedStore.id);
+      setMenus(fresh);
+      toast(`📥 ${count}개 메뉴를 가져왔습니다`);
+    } catch {
+      toast("⚠️ 파일을 읽을 수 없습니다. 올바른 JSON인지 확인해주세요");
+    }
+  }
+
   async function handleSyncProfit() {
     if (!user || !selectedStore) return;
     const withRate = menus.filter(m => (m.price||0) > 0 && (m.ingredients||[]).length > 0);
@@ -265,6 +341,9 @@ export default function CostApp() {
           <div style={{ fontSize:12, color:"var(--text-sub)" }}>{menus.length}개 메뉴 등록됨</div>
         </div>
         <div style={{ marginLeft:"auto", display:"flex", gap:8 }}>
+          <input ref={fileInputRef} type="file" accept=".json,application/json" style={{ display:"none" }} onChange={handleImportFile} />
+          <button onClick={() => fileInputRef.current?.click()} style={{ ...S.btn(), fontSize:12, padding:"7px 14px" }}>📥 가져오기</button>
+          <button onClick={handleExport} style={{ ...S.btn(), fontSize:12, padding:"7px 14px" }}>💾 내보내기</button>
           {stores.filter(s => s.id !== selectedStore.id).length > 0 && (
             <CopyMenuDropdown stores={stores.filter(s=>s.id!==selectedStore.id)} onCopy={handleCopyMenus} />
           )}
