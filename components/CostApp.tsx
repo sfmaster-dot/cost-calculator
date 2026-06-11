@@ -707,12 +707,19 @@ function SummaryPanel({ menus }: { menus: Menu[] }) {
 function ReversePanel() {
   const [ings, setIngs] = useState<Ingredient[]>([]);
   const [targetRate, setTargetRate] = useState(30);
-  const [delivFee, setDelivFee] = useState(9.8);
-  const [packCost, setPackCost] = useState(200);
+  const [delivFee, setDelivFee] = useState(7.8);      // 상생요금제 상위 35% 기준
+  const [deliveryCost, setDeliveryCost] = useState(3400); // 1등급 점주 부담 배달비
+  const [packCost, setPackCost] = useState(0);
 
   const cost = calcMenuCost(ings);
   const basic = targetRate > 0 && cost > 0 ? cost / (targetRate / 100) : 0;
-  const full = targetRate > 0 && cost > 0 ? (cost + packCost) / ((targetRate / 100) * (1 - delivFee / 100)) : 0;
+  // 수수료·배달비는 부가세 별도 → ×1.1 적용
+  // 판매가 P 기준: P×(1 − 수수료×1.1) − 배달비×1.1 의 실수령액에서
+  // (식재료 + 포장재)가 목표 원가율이 되도록 역산
+  const feeReal = (delivFee * 1.1) / 100;
+  const full = targetRate > 0 && cost > 0 && feeReal < 1
+    ? ((cost + packCost) / (targetRate / 100) + deliveryCost * 1.1) / (1 - feeReal)
+    : 0;
   const rounded = Math.ceil(full / 500) * 500;
 
   function addIng() { setIngs(p => [...p, { id:genId(), name:"", amount:0, purchaseQty:0, purchasePrice:0, yieldRate:100, priceDate:TODAY_STR }]); }
@@ -762,19 +769,28 @@ function ReversePanel() {
 
       <div style={S.card}>
         <div style={{ fontSize:12, fontWeight:700, color:"var(--text-sub)", marginBottom:14, letterSpacing:"0.06em", textTransform:"uppercase" }}>목표 설정</div>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:10 }}>
           <div>
             <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>목표 원가율 (%)</div>
             <div style={{ position:"relative" }}><input type="number" style={{ ...S.input, fontFamily:"'DM Mono',monospace", paddingRight:28 }} value={targetRate} onChange={e => setTargetRate(parseFloat(e.target.value)||30)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>%</span></div>
           </div>
           <div>
-            <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>배달 수수료 (%)</div>
+            <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>중개수수료 (%)</div>
             <div style={{ position:"relative" }}><input type="number" step="0.1" style={{ ...S.input, fontFamily:"'DM Mono',monospace", paddingRight:28 }} value={delivFee} onChange={e => setDelivFee(parseFloat(e.target.value)||0)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>%</span></div>
+            <div style={{ fontSize:9, color:"var(--text-sub)", marginTop:3 }}>상생요금제 상위35% 7.8%</div>
+          </div>
+          <div>
+            <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>점주 부담 배달비 (원)</div>
+            <div style={{ position:"relative" }}><input type="number" style={{ ...S.input, fontFamily:"'DM Mono',monospace", paddingRight:28 }} value={deliveryCost} onChange={e => setDeliveryCost(parseFloat(e.target.value)||0)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>원</span></div>
+            <div style={{ fontSize:9, color:"var(--text-sub)", marginTop:3 }}>1등급 기준 3,400원</div>
           </div>
           <div>
             <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>포장재·기타 (원)</div>
-            <div style={{ position:"relative" }}><input type="number" style={{ ...S.input, fontFamily:"'DM Mono',monospace", paddingRight:28 }} value={packCost} onChange={e => setPackCost(parseFloat(e.target.value)||0)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>원</span></div>
+            <div style={{ position:"relative" }}><input type="number" placeholder="500" style={{ ...S.input, fontFamily:"'DM Mono',monospace", paddingRight:28 }} value={packCost||""} onChange={e => setPackCost(parseFloat(e.target.value)||0)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>원</span></div>
           </div>
+        </div>
+        <div style={{ fontSize:11, color:"var(--text-sub)", marginTop:10 }}>
+          ※ 중개수수료·배달비는 부가세 별도라 <strong style={{ color:"var(--accent)" }}>×1.1</strong>로 계산합니다.
         </div>
       </div>
 
@@ -782,9 +798,9 @@ function ReversePanel() {
         <div style={{ fontSize:12, color:"var(--text-sub)", marginBottom:6 }}>식재료만 고려한 최소 판매가</div>
         <div style={{ fontFamily:"'DM Mono',monospace", fontSize:34, color:"var(--accent)", marginBottom:16 }}>{basic > 0 ? `${fmt(Math.ceil(basic/500)*500)}원~` : "—"}</div>
         <div style={{ height:1, background:"var(--border)", margin:"0 0 16px" }} />
-        <div style={{ fontSize:12, color:"var(--text-sub)", marginBottom:6 }}>배달 수수료·포장비 포함 권장 판매가</div>
+        <div style={{ fontSize:12, color:"var(--text-sub)", marginBottom:6 }}>중개수수료·배달비·포장비 포함 권장 판매가</div>
         <div style={{ fontFamily:"'DM Mono',monospace", fontSize:26, color:"var(--text)", marginBottom:8 }}>{full > 0 ? `${fmt(rounded)}원~` : "—"}</div>
-        {full > 0 && <div style={{ fontSize:11, color:"var(--text-sub)" }}>식재료 {fmt(cost)}원 + 포장재 {fmt(packCost)}원 · 배달수수료 {delivFee}% 반영 · 500원 단위 올림</div>}
+        {full > 0 && <div style={{ fontSize:11, color:"var(--text-sub)" }}>식재료 {fmt(cost)}원 + 포장재 {fmt(packCost)}원 · 수수료 {delivFee}%×1.1 · 배달비 {fmt(deliveryCost)}원×1.1 반영 · 500원 단위 올림</div>}
       </div>
     </div>
   );
