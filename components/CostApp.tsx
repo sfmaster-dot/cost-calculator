@@ -264,7 +264,7 @@ export default function CostApp() {
 
       {tab === "calc" && <CalcPanel menus={menus} onChange={handleMenuChange} onAdd={handleAddMenu} onDelete={handleDeleteMenu} />}
       {tab === "summary" && <SummaryPanel menus={menus} />}
-      {tab === "reverse" && <ReversePanel />}
+      {tab === "reverse" && <ReversePanel menus={menus} />}
 
       <div style={{
         position:"fixed", bottom:32, left:"50%",
@@ -704,66 +704,62 @@ function SummaryPanel({ menus }: { menus: Menu[] }) {
 }
 
 // ── 판매가 역산 패널 ───────────────────────────────────────────────────────────
-function ReversePanel() {
-  const [ings, setIngs] = useState<Ingredient[]>([]);
+function ReversePanel({ menus }: { menus: Menu[] }) {
+  const [cost, setCost] = useState(0);
+  const [selectedMenuId, setSelectedMenuId] = useState("");
   const [targetRate, setTargetRate] = useState(30);
   const [delivFee, setDelivFee] = useState(7.8);      // 상생요금제 상위 35% 기준
   const [deliveryCost, setDeliveryCost] = useState(3400); // 1등급 점주 부담 배달비
   const [packCost, setPackCost] = useState(0);
 
-  const cost = calcMenuCost(ings);
   const basic = targetRate > 0 && cost > 0 ? cost / (targetRate / 100) : 0;
   // 수수료·배달비는 부가세 별도 → ×1.1 적용
-  // 판매가 P 기준: P×(1 − 수수료×1.1) − 배달비×1.1 의 실수령액에서
-  // (식재료 + 포장재)가 목표 원가율이 되도록 역산
   const feeReal = (delivFee * 1.1) / 100;
   const full = targetRate > 0 && cost > 0 && feeReal < 1
     ? ((cost + packCost) / (targetRate / 100) + deliveryCost * 1.1) / (1 - feeReal)
     : 0;
   const rounded = Math.ceil(full / 500) * 500;
 
-  function addIng() { setIngs(p => [...p, { id:genId(), name:"", amount:0, purchaseQty:0, purchasePrice:0, yieldRate:100, priceDate:TODAY_STR }]); }
-  function removeIng(idx: number) { setIngs(p => p.filter((_,i) => i!==idx)); }
-  function updateIng(idx: number, field: keyof Ingredient, val: string) {
-    setIngs(p => p.map((ing, i) => i===idx ? { ...ing, [field]: (field==="name"||field==="priceDate") ? val : (parseFloat(val)||0) } : ing));
+  const menusWithCost = menus.filter(m => (m.ingredients||[]).length > 0);
+
+  function selectMenu(id: string) {
+    setSelectedMenuId(id);
+    if (!id) return;
+    const m = menus.find(x => x.id === id);
+    if (m) setCost(Math.round(calcMenuCost(m.ingredients||[])));
   }
 
   return (
     <div>
       <div style={{ background:"rgba(245,200,66,0.07)", border:"1px solid rgba(245,200,66,0.2)", borderRadius:"var(--radius)", padding:"14px 18px", fontSize:13, color:"var(--text-sub)", lineHeight:1.7, marginBottom:20 }}>
         <strong style={{ color:"var(--accent)" }}>🎯 판매가 역산이란?</strong><br />
-        식재료 원가 계산 → 목표 원가율 설정 → <strong style={{ color:"var(--text)" }}>최소 판매가 자동 계산</strong>
+        식재료 원가와 목표 원가율을 넣으면 <strong style={{ color:"var(--text)" }}>최소 판매가를 자동 계산</strong>합니다.<br />
+        신메뉴 기획이면 대략적인 원가만 입력해도 충분해요.
       </div>
 
       <div style={S.card}>
-        <div style={{ fontSize:12, fontWeight:700, color:"var(--text-sub)", marginBottom:14, letterSpacing:"0.06em", textTransform:"uppercase" }}>식재료 원가 입력</div>
-        <div style={{ display:"grid", gridTemplateColumns:"1.8fr 80px 80px 60px 72px 80px 32px", gap:5, marginBottom:6 }}>
-          {["재료명","구매량(g)","구매가(원)","수율(%)","사용량(g)","100g단가",""].map((h,i) => (
-            <div key={i} style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", paddingLeft: i<6?6:0 }}>{h}</div>
-          ))}
-        </div>
-        {ings.map((ing, idx) => {
-          const up = calcUnitPrice(ing);
-          return (
-            <div key={ing.id} style={{ display:"grid", gridTemplateColumns:"1.8fr 80px 80px 60px 72px 80px 32px", gap:5, marginBottom:6, alignItems:"center" }}>
-              <input style={S.input} placeholder="재료명" value={ing.name} onChange={e => updateIng(idx,"name",e.target.value)} />
-              <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }} placeholder="5400" value={ing.purchaseQty||""} onChange={e => updateIng(idx,"purchaseQty",e.target.value)} />
-              <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }} placeholder="64000" value={ing.purchasePrice||""} onChange={e => updateIng(idx,"purchasePrice",e.target.value)} />
-              <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }} placeholder="100" value={ing.yieldRate||""} onChange={e => updateIng(idx,"yieldRate",e.target.value)} />
-              <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }} placeholder="300" value={ing.amount||""} onChange={e => updateIng(idx,"amount",e.target.value)} />
-              <div style={{ background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:8, padding:"8px 10px", textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12, color: up > 0 ? "var(--accent)" : "var(--text-sub)" }}>
-                {up > 0 ? `${fmtDec(up)}원` : "—"}
-              </div>
-              <button onClick={() => removeIng(idx)} style={{ width:32, height:34, borderRadius:6, border:"1px solid var(--border)", background:"transparent", color:"var(--text-sub)", fontSize:14, cursor:"pointer" }}>✕</button>
+        <div style={{ fontSize:12, fontWeight:700, color:"var(--text-sub)", marginBottom:14, letterSpacing:"0.06em", textTransform:"uppercase" }}>식재료 원가</div>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+          <div>
+            <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>직접 입력 (원)</div>
+            <div style={{ position:"relative" }}>
+              <input type="number" placeholder="6000" style={{ ...S.input, fontFamily:"'DM Mono',monospace", paddingRight:28, fontSize:15 }}
+                value={cost||""} onChange={e => { setCost(parseFloat(e.target.value)||0); setSelectedMenuId(""); }} />
+              <span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>원</span>
             </div>
-          );
-        })}
-        <button onClick={addIng} style={{ width:"100%", padding:"7px", borderRadius:8, border:"1px dashed var(--border)", background:"transparent", color:"var(--text-sub)", fontFamily:"'Noto Sans KR',sans-serif", fontSize:12, cursor:"pointer", marginBottom:12 }}>
-          ＋ 재료 추가
-        </button>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <span style={{ fontSize:13, color:"var(--text-sub)" }}>계산된 식재료 원가</span>
-          <span style={{ fontFamily:"'DM Mono',monospace", fontSize:18, color:"var(--accent)" }}>{fmt(cost)}원</span>
+          </div>
+          <div>
+            <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>등록된 메뉴에서 불러오기</div>
+            <select value={selectedMenuId} onChange={e => selectMenu(e.target.value)}
+              style={{ ...S.input, cursor:"pointer", appearance:"auto" as any }}>
+              <option value="">메뉴 선택...</option>
+              {menusWithCost.map(m => (
+                <option key={m.id} value={m.id}>
+                  {m.name||"(이름 없음)"} — {fmt(calcMenuCost(m.ingredients||[]))}원
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
