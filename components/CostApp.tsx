@@ -761,7 +761,14 @@ function ReversePanel({ menus }: { menus: Menu[] }) {
     setSelectedMenuId(id);
     if (!id) return;
     const m = menus.find(x => x.id === id);
-    if (m) setCost(Math.round(calcMenuCost(m.ingredients||[])));
+    if (m) {
+      const c = Math.round(calcMenuCost(m.ingredients||[]));
+      setCost(c);
+      // 메뉴에 판매가가 있으면 실제 원가율도 자동 입력
+      if (m.price > 0 && c > 0) {
+        setTargetRate(parseFloat(((c / m.price) * 100).toFixed(1)));
+      }
+    }
   }
 
   return (
