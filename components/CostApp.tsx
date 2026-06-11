@@ -825,7 +825,7 @@ function ReversePanel({ menus }: { menus: Menu[] }) {
           <div>
             <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>점주 부담 배달비 (원)</div>
             <div style={{ position:"relative" }}><input type="number" style={{ ...S.input, fontFamily:"'DM Mono',monospace", paddingRight:28 }} value={deliveryCost} onChange={e => setDeliveryCost(parseFloat(e.target.value)||0)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>원</span></div>
-            <div style={{ fontSize:9, color:"var(--text-sub)", marginTop:3 }}>1등급 기준 3,400원</div>
+            <div style={{ fontSize:9, color:"var(--text-sub)", marginTop:3 }}>1등급 서울 기준 3,400원</div>
           </div>
           <div>
             <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>포장재·기타 (원)</div>
