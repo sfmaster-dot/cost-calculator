@@ -58,6 +58,7 @@ export interface Menu {
   price: number;
   targetRate: number;
   priceDate?: string;    // 기준날짜 (메뉴 단위)
+  components?: string[]; // 메뉴구성 (함께 나가는 품목)
   ingredients: Ingredient[];
   costRate?: number;
   cost?: number;

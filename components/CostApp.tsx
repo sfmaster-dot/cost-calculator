@@ -236,6 +236,7 @@ export default function CostApp() {
         price: m.price,
         targetRate: m.targetRate,
         priceDate: m.priceDate || "",
+        components: m.components || [],
         ingredients: (m.ingredients||[]).map(i => ({
           name: i.name, amount: i.amount,
           purchaseQty: i.purchaseQty, purchasePrice: i.purchasePrice,
@@ -278,6 +279,7 @@ export default function CostApp() {
           price: Number(m.price) || 0,
           targetRate: Number(m.targetRate) || 30,
           priceDate: typeof m.priceDate === "string" ? m.priceDate : TODAY_STR,
+          components: Array.isArray(m.components) ? m.components.map((c: any) => String(c)) : [],
           ingredients: Array.isArray(m.ingredients) ? m.ingredients.map((i: any) => ({
             id: genId(),
             name: String(i?.name || ""),
@@ -617,6 +619,36 @@ function MenuCard({ menu, colorIdx, onChange, onDelete }: { menu: Menu; colorIdx
           </div>
         </div>
         <button onClick={() => onDelete(menu.id)} style={{ ...S.btn("danger"), padding:"9px 12px", flexShrink:0 }}>✕</button>
+      </div>
+
+      {/* 메뉴구성 */}
+      <div style={{ marginBottom:16 }}>
+        <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:6 }}>메뉴구성 (함께 나가는 품목)</div>
+        <div style={{ display:"flex", flexWrap:"wrap", gap:6, alignItems:"center" }}>
+          {(menu.components||[]).map((comp, i) => (
+            <span key={i} style={{ display:"inline-flex", alignItems:"center", gap:5, background:`${color}18`, border:`1px solid ${color}50`, borderRadius:99, padding:"4px 6px 4px 12px", fontSize:12, color:"var(--text)" }}>
+              {comp}
+              <button onClick={() => {
+                const comps = [...(menu.components||[])];
+                comps.splice(i, 1);
+                onChange({ ...menu, components: comps });
+              }} style={{ background:"transparent", border:"none", color:"var(--text-sub)", fontSize:11, cursor:"pointer", padding:"0 4px", lineHeight:1 }}>✕</button>
+            </span>
+          ))}
+          <input
+            style={{ ...S.input, width:160, fontSize:12, padding:"6px 10px" }}
+            placeholder="품목 입력 후 엔터"
+            onKeyDown={e => {
+              if (e.key === "Enter") {
+                const v = (e.target as HTMLInputElement).value.trim();
+                if (v) {
+                  onChange({ ...menu, components: [...(menu.components||[]), v] });
+                  (e.target as HTMLInputElement).value = "";
+                }
+              }
+            }}
+          />
+        </div>
       </div>
 
       {/* 판매가·목표 */}
