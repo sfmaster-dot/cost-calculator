@@ -336,7 +336,7 @@ export default function CostApp() {
       {/* 헤더 */}
       <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:28 }}>
         <button onClick={() => { setSelectedStore(null); setMenus([]); }} style={{ ...S.btn(), padding:"7px 12px", fontSize:18 }}>←</button>
-        <div style={{ width:36, height:36, borderRadius:10, background:selectedStore.color, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>🏪</div>
+        <div style={{ width:36, height:36, borderRadius:10, background:`${selectedStore.color}22`, border:`1px solid ${selectedStore.color}55`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:900, color:selectedStore.color }}>{(selectedStore.name||"가").charAt(0)}</div>
         <div>
           <div style={{ fontWeight:700, fontSize:16 }}>{selectedStore.name}</div>
           <div style={{ fontSize:12, color:"var(--text-sub)" }}>{menus.length}개 메뉴 등록됨</div>
@@ -503,7 +503,7 @@ function StoreScreen({ user, stores, onSelect, onDelete, addingStore, setAddingS
             <div className="neon" style={{ height:4, background:store.color, borderRadius:"16px 16px 0 0" }} />
             <div style={{ padding:"18px 18px 0" }}>
               <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
-                <div style={{ width:38, height:38, borderRadius:11, background:`${store.color}22`, border:`1px solid ${store.color}55`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>🏪</div>
+                <div style={{ width:38, height:38, borderRadius:11, background:`${store.color}22`, border:`1px solid ${store.color}55`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:17, fontWeight:900, color:store.color }}>{(store.name||"가").charAt(0)}</div>
                 <div style={{ fontWeight:800, fontSize:15, lineHeight:1.3, flex:1 }}>{store.name}</div>
               </div>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
