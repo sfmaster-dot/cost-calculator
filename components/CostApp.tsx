@@ -450,17 +450,17 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
             display:"flex", alignItems:"center", justifyContent:"center", gap:6,
             background:"rgba(61,214,140,0.12)", border:"1px solid rgba(61,214,140,0.3)",
             borderRadius:10, padding:"11px 8px", textDecoration:"none",
-            fontSize:12, fontWeight:700, color:"var(--green)",
+            fontSize:12, fontWeight:700, color:"var(--green)", whiteSpace:"nowrap",
           }}>
-            🥡 배달창업도 <strong>청년다방</strong>
+            🥡 배달창업도&nbsp;<strong>청년다방</strong>
           </a>
           <a href="https://danggum.net/agu" target="_blank" style={{
             display:"flex", alignItems:"center", justifyContent:"center", gap:6,
             background:"rgba(245,200,66,0.10)", border:"1px solid rgba(245,200,66,0.3)",
             borderRadius:10, padding:"11px 8px", textDecoration:"none",
-            fontSize:12, fontWeight:700, color:"var(--accent)",
+            fontSize:12, fontWeight:700, color:"var(--accent)", whiteSpace:"nowrap",
           }}>
-            🐟 아구찜 <strong>전수창업</strong>
+            🐟 아구찜&nbsp;<strong>전수창업</strong>
           </a>
         </div>
       </div>
