@@ -36,6 +36,32 @@ button { cursor: pointer; }
   animation: price-pop 0.45s cubic-bezier(.22,1.4,.36,1);
   display: inline-block;
 }
+
+/* ── 홈화면 모션 ── */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.rise { opacity: 0; animation: rise-in 0.55s cubic-bezier(.22,1,.36,1) forwards; }
+
+.store-card {
+  transition: transform 0.22s cubic-bezier(.22,1,.36,1), box-shadow 0.22s, border-color 0.22s;
+}
+.store-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 14px 36px rgba(0,0,0,0.45), 0 0 0 1px rgba(245,200,66,0.25);
+}
+.store-card .enter-cue { transition: opacity 0.2s, transform 0.2s; opacity: 0; transform: translateX(-6px); }
+.store-card:hover .enter-cue { opacity: 1; transform: translateX(0); }
+.store-card .neon {
+  transition: box-shadow 0.25s;
+}
+.store-card:hover .neon { box-shadow: 0 0 14px 1px var(--neon-color); }
+
+@media (prefers-reduced-motion: reduce) {
+  .rise, .price-anim { animation: none; opacity: 1; }
+  .store-card, .store-card .enter-cue { transition: none; }
+}
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: var(--surface); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }

@@ -450,44 +450,83 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
 // ── 매장 선택 화면 ─────────────────────────────────────────────────────────────
 function StoreScreen({ user, stores, onSelect, onDelete, addingStore, setAddingStore, newStoreName, setNewStoreName, newStoreColor, setNewStoreColor, onAddStore, onLogout }: any) {
+  const hour = new Date().getHours();
+  const greeting = hour < 5 ? "늦은 시간까지 고생 많으십니다" : hour < 11 ? "좋은 아침입니다" : hour < 17 ? "오늘 장사도 화이팅입니다" : "오늘 하루도 수고하셨습니다";
+  const firstName = (user.displayName || user.email || "").split("@")[0];
+
   return (
-    <div style={{ maxWidth: 560, margin: "0 auto", padding: "40px 16px 80px" }}>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:32 }}>
+    <div style={{ maxWidth: 620, margin: "0 auto", padding: "56px 20px 80px" }}>
+
+      {/* 헤더 */}
+      <div className="rise" style={{ animationDelay: "0s", display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom:36 }}>
         <div>
-          <div style={{ fontSize:11, color:"var(--text-sub)", marginBottom:4 }}>{user.displayName || user.email}</div>
-          <div style={{ fontSize:22, fontWeight:900 }}>내 <span style={{ color:"var(--accent)" }}>매장</span> 선택</div>
+          <div style={{ fontSize:12, color:"var(--text-sub)", marginBottom:8, letterSpacing:"0.02em" }}>
+            {greeting}, <span style={{ color:"var(--text)" }}>{firstName}</span> 사장님
+          </div>
+          <div style={{ fontSize:30, fontWeight:900, lineHeight:1.15 }}>
+            오늘은 어느 가게<br/>문을 열까요<span style={{ color:"var(--accent)" }}>?</span>
+          </div>
         </div>
-        <button onClick={onLogout} style={{ ...S.btn(), fontSize:12, padding:"7px 12px" }}>로그아웃</button>
+        <button onClick={onLogout} style={{ ...S.btn(), fontSize:12, padding:"8px 14px", flexShrink:0 }}>로그아웃</button>
       </div>
+
       {stores.length === 0 && !addingStore && (
-        <div style={{ textAlign:"center", padding:"48px 0", color:"var(--text-sub)", fontSize:14, lineHeight:1.8 }}>아직 등록된 매장이 없어요.<br/>아래 버튼으로 첫 매장을 추가해보세요!</div>
+        <div className="rise" style={{ animationDelay:"0.1s", textAlign:"center", padding:"56px 0", color:"var(--text-sub)", fontSize:14, lineHeight:1.9 }}>
+          아직 등록된 매장이 없어요.<br/>아래에서 첫 매장의 간판을 달아보세요!
+        </div>
       )}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
-        {stores.map((store: Store) => (
-          <div key={store.id} style={{ ...S.card, cursor:"pointer", marginBottom:0, borderLeft:`3px solid ${store.color}`, position:"relative" }} onClick={() => onSelect(store)}>
-            <div style={{ fontSize:28, marginBottom:8 }}>🏪</div>
-            <div style={{ fontWeight:700, fontSize:15, marginBottom:4 }}>{store.name}</div>
-            <div style={{ fontSize:11, color:"var(--text-sub)" }}>탭해서 입장</div>
-            <button onClick={e => { e.stopPropagation(); onDelete(store); }} style={{ position:"absolute", top:10, right:10, background:"transparent", border:"none", color:"var(--text-sub)", fontSize:16, cursor:"pointer", padding:4 }}>✕</button>
+
+      {/* 매장 카드 — 간판 컨셉 */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(250px, 1fr))", gap:14, marginBottom:14 }}>
+        {stores.map((store: Store, idx: number) => (
+          <div key={store.id} className="rise store-card"
+            style={{
+              animationDelay: `${0.08 + idx * 0.07}s`,
+              background:"var(--surface)", border:"1px solid var(--border)",
+              borderRadius:16, padding:"0 0 18px", cursor:"pointer",
+              position:"relative", overflow:"hidden",
+              ["--neon-color" as any]: store.color,
+            }}
+            onClick={() => onSelect(store)}
+          >
+            {/* 간판 네온 라인 */}
+            <div className="neon" style={{ height:4, background:store.color, borderRadius:"16px 16px 0 0" }} />
+            <div style={{ padding:"18px 18px 0" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
+                <div style={{ width:38, height:38, borderRadius:11, background:`${store.color}22`, border:`1px solid ${store.color}55`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>🏪</div>
+                <div style={{ fontWeight:800, fontSize:15, lineHeight:1.3, flex:1 }}>{store.name}</div>
+              </div>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                <span style={{ fontSize:11, color:"var(--text-sub)" }}>탭해서 입장</span>
+                <span className="enter-cue" style={{ fontSize:13, color:store.color, fontWeight:700 }}>입장 →</span>
+              </div>
+            </div>
+            <button onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete(store); }}
+              style={{ position:"absolute", top:12, right:10, background:"transparent", border:"none", color:"var(--text-sub)", fontSize:14, cursor:"pointer", padding:4, opacity:0.6 }}>✕</button>
           </div>
         ))}
       </div>
+
+      {/* 매장 추가 */}
       {addingStore ? (
-        <div style={S.card}>
-          <div style={{ fontSize:13, fontWeight:700, color:"var(--text-sub)", marginBottom:14, letterSpacing:"0.05em" }}>NEW 매장 추가</div>
-          <input style={{ ...S.input, marginBottom:12 }} placeholder="매장 이름 (예: 삼겹살집 홍대점)" value={newStoreName} onChange={e => setNewStoreName(e.target.value)} onKeyDown={e => e.key === "Enter" && onAddStore()} autoFocus />
-          <div style={{ display:"flex", gap:8, marginBottom:16 }}>
+        <div className="rise" style={{ animationDelay:"0s", background:"var(--surface)", border:"1px solid var(--border)", borderRadius:16, padding:22 }}>
+          <div style={{ fontSize:13, fontWeight:700, color:"var(--text-sub)", marginBottom:14, letterSpacing:"0.05em" }}>새 간판 달기</div>
+          <input style={{ ...S.input, marginBottom:14 }} placeholder="매장 이름 (예: 삼겹살집 홍대점)" value={newStoreName} onChange={e => setNewStoreName(e.target.value)} onKeyDown={e => e.key === "Enter" && onAddStore()} autoFocus />
+          <div style={{ display:"flex", gap:8, marginBottom:18 }}>
             {STORE_COLORS.map(c => (
-              <div key={c} onClick={() => setNewStoreColor(c)} style={{ width:28, height:28, borderRadius:"50%", background:c, cursor:"pointer", outline: newStoreColor===c ? `3px solid white` : "none", outlineOffset:2 }} />
+              <div key={c} onClick={() => setNewStoreColor(c)} style={{ width:28, height:28, borderRadius:"50%", background:c, cursor:"pointer", outline: newStoreColor===c ? `3px solid white` : "none", outlineOffset:2, transition:"transform 0.15s", transform: newStoreColor===c ? "scale(1.15)" : "scale(1)" }} />
             ))}
           </div>
           <div style={{ display:"flex", gap:8 }}>
-            <button onClick={onAddStore} style={{ ...S.btn("primary"), flex:1 }}>추가</button>
-            <button onClick={() => setAddingStore(false)} style={{ ...S.btn(), flex:1 }}>취소</button>
+            <button onClick={onAddStore} style={{ ...S.btn("primary"), flex:1, padding:"12px" }}>간판 달기</button>
+            <button onClick={() => setAddingStore(false)} style={{ ...S.btn(), flex:1, padding:"12px" }}>취소</button>
           </div>
         </div>
       ) : (
-        <button onClick={() => setAddingStore(true)} style={{ width:"100%", padding:14, borderRadius:"var(--radius)", border:"1px dashed var(--border)", background:"transparent", color:"var(--text-sub)", fontFamily:"'Noto Sans KR',sans-serif", fontSize:14, cursor:"pointer" }}>
+        <button className="rise" onClick={() => setAddingStore(true)}
+          style={{ animationDelay: `${0.08 + stores.length * 0.07}s`, width:"100%", padding:18, borderRadius:16, border:"1.5px dashed var(--border)", background:"transparent", color:"var(--text-sub)", fontFamily:"'Noto Sans KR',sans-serif", fontSize:14, cursor:"pointer", transition:"border-color 0.2s, color 0.2s" }}
+          onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
+          onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-sub)"; }}>
           ＋ 매장 추가
         </button>
       )}
