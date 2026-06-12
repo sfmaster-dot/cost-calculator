@@ -217,6 +217,23 @@ export default function CostApp() {
     toast("🗑️ 메뉴가 삭제됐습니다");
   }
 
+  async function handleDuplicateMenu(menu: Menu) {
+    if (!user || !selectedStore) return;
+    const copy: Menu = {
+      id: "",
+      name: (menu.name || "메뉴") + " (복사)",
+      price: menu.price,
+      targetRate: menu.targetRate,
+      priceDate: menu.priceDate || TODAY_STR,
+      components: [...(menu.components||[])],
+      ingredients: (menu.ingredients||[]).map(i => ({ ...i, id: genId() })),
+    };
+    await saveMenu(user.uid, selectedStore.id, copy);
+    const fresh = await getMenus(user.uid, selectedStore.id);
+    setMenus(fresh);
+    toast("📋 메뉴가 복제됐습니다. 이름과 재료를 수정하세요");
+  }
+
   async function handleCopyMenus(toStoreId: string) {
     if (!user || !selectedStore) return;
     const count = await copyMenusToStore(user.uid, selectedStore.id, toStoreId);
@@ -367,7 +384,7 @@ export default function CostApp() {
         ))}
       </div>
 
-      {tab === "calc" && <CalcPanel menus={menus} onChange={handleMenuChange} onAdd={handleAddMenu} onDelete={handleDeleteMenu} />}
+      {tab === "calc" && <CalcPanel menus={menus} onChange={handleMenuChange} onAdd={handleAddMenu} onDelete={handleDeleteMenu} onDuplicate={handleDuplicateMenu} />}
       {tab === "summary" && <SummaryPanel menus={menus} />}
       {tab === "reverse" && <ReversePanel menus={menus} />}
 
@@ -547,7 +564,7 @@ function StoreScreen({ user, stores, onSelect, onDelete, addingStore, setAddingS
 }
 
 // ── 원가 계산 패널 ─────────────────────────────────────────────────────────────
-function CalcPanel({ menus, onChange, onAdd, onDelete }: { menus: Menu[]; onChange: (m: Menu) => void; onAdd: () => void; onDelete: (id: string) => void; }) {
+function CalcPanel({ menus, onChange, onAdd, onDelete, onDuplicate }: { menus: Menu[]; onChange: (m: Menu) => void; onAdd: () => void; onDelete: (id: string) => void; onDuplicate: (m: Menu) => void; }) {
   return (
     <div>
       <div style={{ background:"rgba(245,200,66,0.07)", border:"1px solid rgba(245,200,66,0.2)", borderRadius:"var(--radius)", padding:"14px 18px", fontSize:13, color:"var(--text-sub)", lineHeight:1.7, marginBottom:20 }}>
@@ -560,7 +577,7 @@ function CalcPanel({ menus, onChange, onAdd, onDelete }: { menus: Menu[]; onChan
         <div style={{ textAlign:"center", padding:"40px 0", color:"var(--text-sub)", fontSize:14 }}>아직 메뉴가 없어요. 아래 버튼으로 추가해보세요!</div>
       )}
       {menus.map((menu, idx) => (
-        <MenuCard key={menu.id} menu={menu} colorIdx={idx} onChange={onChange} onDelete={onDelete} />
+        <MenuCard key={menu.id} menu={menu} colorIdx={idx} onChange={onChange} onDelete={onDelete} onDuplicate={onDuplicate} />
       ))}
       <button onClick={onAdd} style={{ width:"100%", padding:14, borderRadius:"var(--radius)", border:"1px dashed var(--border)", background:"transparent", color:"var(--text-sub)", fontFamily:"'Noto Sans KR',sans-serif", fontSize:14, cursor:"pointer" }}>
         ＋ 메뉴 추가하기
@@ -572,7 +589,7 @@ function CalcPanel({ menus, onChange, onAdd, onDelete }: { menus: Menu[]; onChan
 // ── 메뉴 카드 ─────────────────────────────────────────────────────────────────
 const MENU_COLORS = ["#f5c842","#ff6b35","#3dd68c","#60a5fa","#c084fc","#f472b6"];
 
-function MenuCard({ menu, colorIdx, onChange, onDelete }: { menu: Menu; colorIdx: number; onChange: (m: Menu) => void; onDelete: (id: string) => void; }) {
+function MenuCard({ menu, colorIdx, onChange, onDelete, onDuplicate }: { menu: Menu; colorIdx: number; onChange: (m: Menu) => void; onDelete: (id: string) => void; onDuplicate: (m: Menu) => void; }) {
   const color = MENU_COLORS[colorIdx % MENU_COLORS.length];
   const cost = calcMenuCost(menu.ingredients || []);
   const rate = calcRate(cost, menu.price);
@@ -618,6 +635,7 @@ function MenuCard({ menu, colorIdx, onChange, onDelete }: { menu: Menu; colorIdx
             {(() => { const b = dateBadge(menu.priceDate||""); return b ? <span style={{ fontSize:11, color:b.color, whiteSpace:"nowrap" }}>{b.text}</span> : null; })()}
           </div>
         </div>
+        <button onClick={() => onDuplicate(menu)} title="이 메뉴 복제" style={{ ...S.btn(), padding:"9px 12px", flexShrink:0 }}>⧉</button>
         <button onClick={() => onDelete(menu.id)} style={{ ...S.btn("danger"), padding:"9px 12px", flexShrink:0 }}>✕</button>
       </div>
 
