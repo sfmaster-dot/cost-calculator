@@ -644,13 +644,13 @@ function MenuCard({ menu, colorIdx, onChange, onDelete, onDuplicate }: { menu: M
         <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:6 }}>메뉴구성 (함께 나가는 품목)</div>
         <div style={{ display:"flex", flexWrap:"wrap", gap:6, alignItems:"center" }}>
           {(menu.components||[]).map((comp, i) => (
-            <span key={i} style={{ display:"inline-flex", alignItems:"center", gap:5, background:`${color}18`, border:`1px solid ${color}50`, borderRadius:99, padding:"4px 6px 4px 12px", fontSize:12, color:"var(--text)" }}>
+            <span key={i} style={{ display:"inline-flex", alignItems:"center", gap:5, background:"rgba(245,200,66,0.15)", border:"1px solid rgba(245,200,66,0.55)", borderRadius:99, padding:"4px 6px 4px 12px", fontSize:12, fontWeight:600, color:"var(--accent)" }}>
               {comp}
               <button onClick={() => {
                 const comps = [...(menu.components||[])];
                 comps.splice(i, 1);
                 onChange({ ...menu, components: comps });
-              }} style={{ background:"transparent", border:"none", color:"var(--text-sub)", fontSize:11, cursor:"pointer", padding:"0 4px", lineHeight:1 }}>✕</button>
+              }} style={{ background:"transparent", border:"none", color:"rgba(245,200,66,0.7)", fontSize:11, cursor:"pointer", padding:"0 4px", lineHeight:1 }}>✕</button>
             </span>
           ))}
           <input
