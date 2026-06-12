@@ -62,6 +62,45 @@ button { cursor: pointer; }
   .rise, .price-anim { animation: none; opacity: 1; }
   .store-card, .store-card .enter-cue { transition: none; }
 }
+
+/* ── 재료 입력 반응형 ── */
+.ing-head {
+  display: grid;
+  grid-template-columns: 1.8fr 80px 80px 60px 72px 88px 32px;
+  gap: 5px; margin-bottom: 6px;
+}
+.ing-head > div {
+  font-size: 10px; font-weight: 700; color: var(--text-sub); padding-left: 6px;
+}
+.ing-row {
+  display: grid;
+  grid-template-columns: 1.8fr 80px 80px 60px 72px 88px 32px;
+  gap: 5px; align-items: center; margin-bottom: 6px; position: relative;
+}
+.ing-label { display: none; }
+.ing-field { min-width: 0; }
+.ing-field input { width: 100%; }
+
+@media (max-width: 680px) {
+  .ing-head { display: none; }
+  .ing-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    background: rgba(255,255,255,0.025);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .ing-name { grid-column: 1 / -1; padding-right: 40px; }
+  .ing-cost { grid-column: 1 / -1; }
+  .ing-label { display: block; font-size: 9px; font-weight: 700; color: var(--text-sub); margin-bottom: 4px; letter-spacing: 0.04em; }
+  .ing-del { position: absolute !important; top: 10px; right: 10px; }
+  .menu-head-row { flex-wrap: wrap; }
+  .store-header { flex-wrap: wrap; row-gap: 10px; }
+  .store-header .header-actions { margin-left: 0 !important; width: 100%; }
+  .store-header .header-actions button { flex: 1; }
+}
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: var(--surface); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }

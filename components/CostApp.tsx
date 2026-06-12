@@ -353,14 +353,14 @@ export default function CostApp() {
   return (
     <div style={{ maxWidth: 920, margin: "0 auto", padding: "32px 16px 80px" }}>
       {/* 헤더 */}
-      <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:28 }}>
+      <div className="store-header" style={{ display:"flex", alignItems:"center", gap:12, marginBottom:28 }}>
         <button onClick={() => { setSelectedStore(null); setMenus([]); }} style={{ ...S.btn(), padding:"7px 12px", fontSize:18 }}>←</button>
         <div style={{ width:36, height:36, borderRadius:10, background:`${selectedStore.color}22`, border:`1px solid ${selectedStore.color}55`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:900, color:selectedStore.color }}>{(selectedStore.name||"가").charAt(0)}</div>
         <div>
           <div style={{ fontWeight:700, fontSize:16 }}>{selectedStore.name}</div>
           <div style={{ fontSize:12, color:"var(--text-sub)" }}>{menus.length}개 메뉴 등록됨</div>
         </div>
-        <div style={{ marginLeft:"auto", display:"flex", gap:8 }}>
+        <div className="header-actions" style={{ marginLeft:"auto", display:"flex", gap:8 }}>
           <input ref={fileInputRef} type="file" accept=".json,application/json" style={{ display:"none" }} onChange={handleImportFile} />
           <button onClick={() => fileInputRef.current?.click()} style={{ ...S.btn(), fontSize:12, padding:"7px 14px" }}>📥 가져오기</button>
           <button onClick={handleExport} style={{ ...S.btn(), fontSize:12, padding:"7px 14px" }}>💾 내보내기</button>
@@ -624,8 +624,8 @@ function MenuCard({ menu, colorIdx, onChange, onDelete, onDuplicate }: { menu: M
   return (
     <div style={{ ...S.card, borderLeft:`3px solid ${color}` }}>
       {/* 메뉴명·기준날짜·삭제 */}
-      <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:14 }}>
-        <input style={{ ...S.input, flex:1, fontSize:15, fontWeight:700 }} placeholder="메뉴 이름 (예: 불향쭈꾸미 2인)" value={menu.name} onChange={e => onChange({ ...menu, name: e.target.value })} />
+      <div className="menu-head-row" style={{ display:"flex", gap:8, alignItems:"center", marginBottom:14 }}>
+        <input style={{ ...S.input, flex:1, minWidth:160, fontSize:15, fontWeight:700 }} placeholder="메뉴 이름 (예: 불향쭈꾸미 2인)" value={menu.name} onChange={e => onChange({ ...menu, name: e.target.value })} />
         <div style={{ display:"flex", flexDirection:"column", gap:3, flexShrink:0 }}>
           <span style={{ fontSize:9, fontWeight:700, color:"var(--text-sub)", letterSpacing:"0.04em" }}>기준날짜</span>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
@@ -691,10 +691,10 @@ function MenuCard({ menu, colorIdx, onChange, onDelete, onDuplicate }: { menu: M
         </div>
       </div>
 
-      {/* 재료 헤더 */}
-      <div style={{ display:"grid", gridTemplateColumns:"1.8fr 80px 80px 60px 72px 80px 32px", gap:5, marginBottom:6 }}>
+      {/* 재료 헤더 (데스크톱 전용) */}
+      <div className="ing-head">
         {["재료명","구매량(g)","구매가(원)","수율(%)","사용량(g)","원가(원)",""].map((h,i) => (
-          <div key={i} style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", paddingLeft: i < 6 ? 6 : 0 }}>{h}</div>
+          <div key={i}>{h}</div>
         ))}
       </div>
 
@@ -702,21 +702,38 @@ function MenuCard({ menu, colorIdx, onChange, onDelete, onDuplicate }: { menu: M
       {(menu.ingredients || []).map((ing, idx) => {
         const ingCost = calcIngCost(ing);
         return (
-          <div key={ing.id} style={{ display:"grid", gridTemplateColumns:"1.8fr 80px 80px 60px 72px 80px 32px", gap:5, marginBottom:6, alignItems:"center" }}>
-            <input style={S.input} placeholder="재료명" value={ing.name} onChange={e => updateIng(idx,"name",e.target.value)} />
-            <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }}
-              placeholder="5400" value={ing.purchaseQty||""} onChange={e => updateIng(idx,"purchaseQty",e.target.value)} />
-            <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }}
-              placeholder="64000" value={ing.purchasePrice||""} onChange={e => updateIng(idx,"purchasePrice",e.target.value)} />
-            <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }}
-              placeholder="100" value={ing.yieldRate||""} onChange={e => updateIng(idx,"yieldRate",e.target.value)} />
-            <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }}
-              placeholder="300" value={ing.amount||""} onChange={e => updateIng(idx,"amount",e.target.value)} />
-            {/* 사용량 기반 원가 자동 계산 */}
-            <div style={{ background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:8, padding:"8px 10px", textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12, color: ingCost > 0 ? "var(--green)" : "var(--text-sub)" }}>
-              {ingCost > 0 ? `${fmtDec(ingCost)}원` : "—"}
+          <div key={ing.id} className="ing-row">
+            <div className="ing-field ing-name">
+              <span className="ing-label">재료명</span>
+              <input style={S.input} placeholder="재료명" value={ing.name} onChange={e => updateIng(idx,"name",e.target.value)} />
             </div>
-            <button onClick={() => removeIng(idx)} style={{ width:32, height:34, borderRadius:6, border:"1px solid var(--border)", background:"transparent", color:"var(--text-sub)", fontSize:14, cursor:"pointer" }}>✕</button>
+            <div className="ing-field">
+              <span className="ing-label">구매량(g)</span>
+              <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }}
+                placeholder="5400" value={ing.purchaseQty||""} onChange={e => updateIng(idx,"purchaseQty",e.target.value)} />
+            </div>
+            <div className="ing-field">
+              <span className="ing-label">구매가(원)</span>
+              <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }}
+                placeholder="64000" value={ing.purchasePrice||""} onChange={e => updateIng(idx,"purchasePrice",e.target.value)} />
+            </div>
+            <div className="ing-field">
+              <span className="ing-label">수율(%)</span>
+              <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }}
+                placeholder="100" value={ing.yieldRate||""} onChange={e => updateIng(idx,"yieldRate",e.target.value)} />
+            </div>
+            <div className="ing-field">
+              <span className="ing-label">사용량(g)</span>
+              <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }}
+                placeholder="300" value={ing.amount||""} onChange={e => updateIng(idx,"amount",e.target.value)} />
+            </div>
+            <div className="ing-field ing-cost">
+              <span className="ing-label">원가(원)</span>
+              <div style={{ background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:8, padding:"8px 10px", textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12, color: ingCost > 0 ? "var(--green)" : "var(--text-sub)" }}>
+                {ingCost > 0 ? `${fmtDec(ingCost)}원` : "—"}
+              </div>
+            </div>
+            <button className="ing-del" onClick={() => removeIng(idx)} style={{ width:32, height:34, borderRadius:6, border:"1px solid var(--border)", background:"transparent", color:"var(--text-sub)", fontSize:14, cursor:"pointer" }}>✕</button>
           </div>
         );
       })}
