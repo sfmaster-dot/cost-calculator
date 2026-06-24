@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   loginWithGoogle, logout, onAuthChange,
-  getStores, addStore, deleteStore,
+  getStores, addStore, updateStore, deleteStore,
   getMenus, saveMenu, deleteMenu, copyMenusToStore, syncCostRateToProfit,
   type Store, type Menu, type Ingredient,
 } from "@/lib/firebase";
@@ -152,6 +152,8 @@ export default function CostApp() {
   const [selectedStore, setSelectedStore] = useState<Store|null>(null);
   const [menus, setMenus] = useState<Menu[]>([]);
   const [tab, setTab] = useState<"calc"|"summary"|"reverse">("calc");
+  const [editingStoreName, setEditingStoreName] = useState(false);
+  const [storeNameDraft, setStoreNameDraft] = useState("");
   const { msg: toastMsg, show: toastShow, toast } = useToast();
 
   useEffect(() => {
@@ -330,6 +332,18 @@ export default function CostApp() {
     toast(`✅ 손익분석기에 원가율 ${avg.toFixed(1)}% 반영됐습니다`);
   }
 
+  async function handleRenameStore() {
+    if (!user || !selectedStore) return;
+    const newName = storeNameDraft.trim();
+    setEditingStoreName(false);
+    if (!newName || newName === selectedStore.name) return;
+    await updateStore(user.uid, selectedStore.id, { name: newName });
+    const updated = { ...selectedStore, name: newName };
+    setSelectedStore(updated);
+    setStores(prev => prev.map(s => s.id === selectedStore.id ? updated : s));
+    toast("✏️ 매장 이름이 변경됐습니다");
+  }
+
   if (loading) return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", color:"var(--text-sub)", fontFamily:"'Noto Sans KR',sans-serif" }}>
       로딩 중...
@@ -356,8 +370,24 @@ export default function CostApp() {
       <div className="store-header" style={{ display:"flex", alignItems:"center", gap:12, marginBottom:28 }}>
         <button onClick={() => { setSelectedStore(null); setMenus([]); }} style={{ ...S.btn(), padding:"7px 12px", fontSize:18 }}>←</button>
         <div style={{ width:36, height:36, borderRadius:10, background:`${selectedStore.color}22`, border:`1px solid ${selectedStore.color}55`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:900, color:selectedStore.color }}>{(selectedStore.name||"가").charAt(0)}</div>
-        <div>
-          <div style={{ fontWeight:700, fontSize:16 }}>{selectedStore.name}</div>
+        <div style={{ minWidth:0, flex:1 }}>
+          {editingStoreName ? (
+            <input
+              autoFocus
+              value={storeNameDraft}
+              onChange={e => setStoreNameDraft(e.target.value)}
+              onBlur={handleRenameStore}
+              onKeyDown={e => { if (e.key === "Enter") handleRenameStore(); if (e.key === "Escape") setEditingStoreName(false); }}
+              style={{ ...S.input, fontSize:16, fontWeight:700, padding:"4px 10px", maxWidth:280 }}
+            />
+          ) : (
+            <div onClick={() => { setStoreNameDraft(selectedStore.name); setEditingStoreName(true); }}
+              style={{ fontWeight:700, fontSize:16, cursor:"pointer", display:"inline-flex", alignItems:"center", gap:6 }}
+              title="클릭해서 이름 수정">
+              {selectedStore.name}
+              <span style={{ fontSize:12, color:"var(--text-sub)", opacity:0.7 }}>✏️</span>
+            </div>
+          )}
           <div style={{ fontSize:12, color:"var(--text-sub)" }}>{menus.length}개 메뉴 등록됨</div>
         </div>
         <div className="header-actions" style={{ marginLeft:"auto", display:"flex", gap:8 }}>
