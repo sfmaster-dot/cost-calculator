@@ -164,6 +164,21 @@ export default function CostApp() {
     });
   }, []);
 
+  // iframe 임베드 시: 콘텐츠 높이를 부모 창에 알림 (높이 자동 맞춤)
+  useEffect(() => {
+    if (typeof window === "undefined" || window.parent === window) return;
+    const post = () => {
+      const h = document.documentElement.scrollHeight;
+      window.parent.postMessage({ type: "dgm-cost-height", height: h }, "*");
+    };
+    post();
+    const ro = new ResizeObserver(post);
+    ro.observe(document.body);
+    const t = setInterval(post, 800); // 안전망: 주기적 재측정
+    window.addEventListener("resize", post);
+    return () => { ro.disconnect(); clearInterval(t); window.removeEventListener("resize", post); };
+  });
+
   useEffect(() => {
     if (!user || !selectedStore) return;
     getMenus(user.uid, selectedStore.id).then(setMenus);
