@@ -497,6 +497,7 @@ function AccessGate({ user, access, onRedeemed, onLogout }: {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const expired = access?.expires && (access.daysLeft ?? 0) < 0;
+  const banned = access?.banned === true;
 
   async function handleRedeem() {
     if (!user.email || busy) return;
@@ -514,12 +515,14 @@ function AccessGate({ user, access, onRedeemed, onLogout }: {
       <div style={{ background:"var(--surface)", borderRadius:20, padding:"40px 30px 30px", width:"100%", maxWidth:400, boxShadow:"0 8px 40px rgba(0,0,0,0.4)" }}>
 
         <div style={{ textAlign:"center", marginBottom:26 }}>
-          <div style={{ fontSize:36, marginBottom:12 }}>{expired ? "⏰" : "🔒"}</div>
+          <div style={{ fontSize:36, marginBottom:12 }}>{banned ? "🚫" : expired ? "⏰" : "🔒"}</div>
           <div style={{ fontSize:20, fontWeight:900, color:"var(--text)", marginBottom:8 }}>
-            {expired ? "이용 기간이 종료됐습니다" : "이용권이 필요합니다"}
+            {banned ? "이용이 제한된 계정입니다" : expired ? "이용 기간이 종료됐습니다" : "이용권이 필요합니다"}
           </div>
           <div style={{ fontSize:13, color:"var(--text-sub)", lineHeight:1.7 }}>
-            {expired
+            {banned
+              ? <>이 계정은 이용이 제한됐습니다.<br/>문의가 필요하면 danggum.net으로 연락주세요.</>
+              : expired
               ? <>이용권이 {access?.expires}에 만료됐어요.<br/>연장하고 계속 이용하세요.</>
               : <>단꿈 장사도구는 이용권 회원 전용입니다.<br/>구매 후 회원 페이지의 입장코드를 입력하세요.</>}
           </div>

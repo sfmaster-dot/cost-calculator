@@ -18,6 +18,7 @@ export const PURCHASE_LINKS = {
 export interface AccessInfo {
   allowed: boolean;
   isAdmin: boolean;
+  banned?: boolean;
   expires?: string;   // YYYY-MM-DD
   daysLeft?: number;
   plan?: string;
@@ -50,6 +51,9 @@ export async function checkAccess(email: string | null): Promise<AccessInfo> {
     const snap = await getDoc(doc(db, "toolAccess", lower));
     if (!snap.exists()) return { allowed: false, isAdmin: false };
     const data = snap.data();
+    if (data.banned === true) {
+      return { allowed: false, isAdmin: false, banned: true };
+    }
     const expires = data.expires as string;
     if (!expires) return { allowed: false, isAdmin: false };
     const today = todayStr();
@@ -99,7 +103,11 @@ export async function redeemCode(
   try {
     const cur = await getDoc(doc(db, "toolAccess", lower));
     if (cur.exists()) {
-      const curExp = cur.data().expires as string;
+      const curData = cur.data();
+      if (curData.banned === true) {
+        return { ok: false, message: "이용이 제한된 계정입니다. 문의: danggum.net" };
+      }
+      const curExp = curData.expires as string;
       if (curExp && curExp > today) base = curExp;
     }
   } catch { /* 신규 등록으로 진행 */ }
