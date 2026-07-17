@@ -8,6 +8,7 @@ import {
   type Store, type Menu, type Ingredient,
 } from "@/lib/firebase";
 import type { User } from "firebase/auth";
+import { checkAccess, redeemCode, PURCHASE_LINKS, type AccessInfo } from "@/lib/access";
 
 // ── 상수 ──────────────────────────────────────────────────────────────────────
 const STORE_COLORS = ["#f5c842","#ff6b35","#3dd68c","#60a5fa","#c084fc","#f472b6","#fb923c","#34d399"];
@@ -148,6 +149,8 @@ function useToast() {
 export default function CostApp() {
   const [user, setUser] = useState<User|null>(null);
   const [loading, setLoading] = useState(true);
+  const [access, setAccess] = useState<AccessInfo|null>(null);
+  const [accessChecking, setAccessChecking] = useState(false);
   const [stores, setStores] = useState<Store[]>([]);
   const [selectedStore, setSelectedStore] = useState<Store|null>(null);
   const [menus, setMenus] = useState<Menu[]>([]);
@@ -159,10 +162,31 @@ export default function CostApp() {
   useEffect(() => {
     return onAuthChange(async (u) => {
       setUser(u);
-      if (u) { const s = await getStores(u.uid); setStores(s); }
+      if (u) {
+        setAccessChecking(true);
+        const a = await checkAccess(u.email);
+        setAccess(a);
+        setAccessChecking(false);
+        if (a.allowed) {
+          const s = await getStores(u.uid);
+          setStores(s);
+        }
+      } else {
+        setAccess(null);
+      }
       setLoading(false);
     });
   }, []);
+
+  async function refreshAccess() {
+    if (!user) return;
+    const a = await checkAccess(user.email);
+    setAccess(a);
+    if (a.allowed) {
+      const s = await getStores(user.uid);
+      setStores(s);
+    }
+  }
 
   // iframe 임베드 시: 콘텐츠 높이를 부모 창에 알림 (높이 자동 맞춤)
   useEffect(() => {
@@ -367,6 +391,21 @@ export default function CostApp() {
 
   if (!user) return <LoginScreen onLogin={loginWithGoogle} />;
 
+  if (accessChecking) return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", color:"var(--text-sub)", fontFamily:"'Noto Sans KR',sans-serif" }}>
+      이용권 확인 중...
+    </div>
+  );
+
+  if (!access?.allowed) return (
+    <AccessGate
+      user={user}
+      access={access}
+      onRedeemed={refreshAccess}
+      onLogout={() => { logout(); setSelectedStore(null); setMenus([]); setStores([]); }}
+    />
+  );
+
   if (!selectedStore) return (
     <StoreScreen
       user={user} stores={stores}
@@ -442,6 +481,102 @@ export default function CostApp() {
         padding:"11px 22px", borderRadius:99, transition:"all 0.3s",
         pointerEvents:"none", zIndex:999, whiteSpace:"nowrap",
       }}>{toastMsg}</div>
+    </div>
+  );
+}
+
+
+// ── 이용권 게이트 (권한 없음 → 안내 + 코드 입력) ─────────────────────────────
+function AccessGate({ user, access, onRedeemed, onLogout }: {
+  user: User;
+  access: AccessInfo | null;
+  onRedeemed: () => Promise<void>;
+  onLogout: () => void;
+}) {
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const expired = access?.expires && (access.daysLeft ?? 0) < 0;
+
+  async function handleRedeem() {
+    if (!user.email || busy) return;
+    setBusy(true); setMsg(null);
+    const r = await redeemCode(user.email, code);
+    setMsg({ ok: r.ok, text: r.message });
+    setBusy(false);
+    if (r.ok) {
+      setTimeout(() => { onRedeemed(); }, 900);
+    }
+  }
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:"100vh", padding:"32px 24px", background:"var(--bg)", fontFamily:"'Noto Sans KR',sans-serif" }}>
+      <div style={{ background:"var(--surface)", borderRadius:20, padding:"40px 30px 30px", width:"100%", maxWidth:400, boxShadow:"0 8px 40px rgba(0,0,0,0.4)" }}>
+
+        <div style={{ textAlign:"center", marginBottom:26 }}>
+          <div style={{ fontSize:36, marginBottom:12 }}>{expired ? "⏰" : "🔒"}</div>
+          <div style={{ fontSize:20, fontWeight:900, color:"var(--text)", marginBottom:8 }}>
+            {expired ? "이용 기간이 종료됐습니다" : "이용권이 필요합니다"}
+          </div>
+          <div style={{ fontSize:13, color:"var(--text-sub)", lineHeight:1.7 }}>
+            {expired
+              ? <>이용권이 {access?.expires}에 만료됐어요.<br/>연장하고 계속 이용하세요.</>
+              : <>단꿈 장사도구는 이용권 회원 전용입니다.<br/>구매 후 회원 페이지의 입장코드를 입력하세요.</>}
+          </div>
+          <div style={{ fontSize:11, color:"var(--text-sub)", marginTop:10, opacity:0.7 }}>
+            로그인 계정: {user.email}
+          </div>
+        </div>
+
+        {/* 구매 버튼 */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:22 }}>
+          <a href={PURCHASE_LINKS.month} target="_blank" style={{
+            display:"flex", flexDirection:"column", alignItems:"center", gap:3,
+            background:"var(--surface2)", border:"1px solid var(--border)",
+            borderRadius:12, padding:"14px 8px", textDecoration:"none",
+          }}>
+            <span style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>1개월권</span>
+            <span style={{ fontSize:12, color:"var(--accent)", fontFamily:"'DM Mono',monospace" }}>49,800원</span>
+          </a>
+          <a href={PURCHASE_LINKS.year} target="_blank" style={{
+            display:"flex", flexDirection:"column", alignItems:"center", gap:3,
+            background:"rgba(245,200,66,0.1)", border:"1px solid rgba(245,200,66,0.4)",
+            borderRadius:12, padding:"14px 8px", textDecoration:"none", position:"relative",
+          }}>
+            <span style={{ position:"absolute", top:-9, right:8, background:"var(--accent)", color:"#0f1117", fontSize:9, fontWeight:800, padding:"2px 8px", borderRadius:99 }}>BEST</span>
+            <span style={{ fontSize:13, fontWeight:700, color:"var(--accent)" }}>1년권</span>
+            <span style={{ fontSize:12, color:"var(--accent)", fontFamily:"'DM Mono',monospace" }}>148,000원</span>
+          </a>
+        </div>
+
+        {/* 코드 입력 */}
+        <div style={{ fontSize:11, fontWeight:700, color:"var(--text-sub)", letterSpacing:"0.05em", marginBottom:8 }}>
+          이미 구매하셨나요? 입장코드 입력
+        </div>
+        <div style={{ display:"flex", gap:8, marginBottom:10 }}>
+          <input
+            style={{ ...S.input, flex:1, fontFamily:"'DM Mono',monospace", letterSpacing:"0.05em" }}
+            placeholder="입장코드"
+            value={code}
+            onChange={e => setCode(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleRedeem()}
+          />
+          <button onClick={handleRedeem} disabled={busy} style={{ ...S.btn("primary"), padding:"9px 18px", opacity: busy ? 0.6 : 1 }}>
+            {busy ? "확인 중..." : "등록"}
+          </button>
+        </div>
+        {msg && (
+          <div style={{ fontSize:12, color: msg.ok ? "var(--green)" : "var(--red)", marginBottom:6, lineHeight:1.5 }}>
+            {msg.ok ? "✅ " : "⚠️ "}{msg.text}
+          </div>
+        )}
+        <div style={{ fontSize:11, color:"var(--text-sub)", lineHeight:1.7, marginTop:8 }}>
+          입장코드는 구매 완료 후 <strong style={{ color:"var(--text)" }}>회원 전용 페이지</strong>에서 확인할 수 있어요.
+        </div>
+
+        <div style={{ height:1, background:"var(--border)", margin:"20px 0 14px" }} />
+        <button onClick={onLogout} style={{ ...S.btn(), width:"100%", fontSize:12 }}>다른 계정으로 로그인</button>
+      </div>
     </div>
   );
 }
