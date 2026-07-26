@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
   loginWithGoogle, logout, onAuthChange,
   getStores, addStore, updateStore, deleteStore,
-  getMenus, saveMenu, deleteMenu, copyMenusToStore, syncCostRateToProfit,
+  getMenus, saveMenu, deleteMenu, copyMenusToStore, saveMenuOrder, syncCostRateToProfit,
   type Store, type Menu, type Ingredient,
 } from "@/lib/firebase";
 import type { User } from "firebase/auth";
@@ -258,6 +258,17 @@ export default function CostApp() {
     toast("🗑️ 메뉴가 삭제됐습니다");
   }
 
+  async function handleMoveMenu(menuId: string, dir: -1 | 1) {
+    if (!user || !selectedStore) return;
+    const idx = menus.findIndex(m => m.id === menuId);
+    const to = idx + dir;
+    if (idx < 0 || to < 0 || to >= menus.length) return;
+    const next = [...menus];
+    [next[idx], next[to]] = [next[to], next[idx]];
+    setMenus(next);
+    await saveMenuOrder(user.uid, selectedStore.id, next.map(m => m.id));
+  }
+
   async function handleDuplicateMenu(menu: Menu) {
     if (!user || !selectedStore) return;
     const copy: Menu = {
@@ -468,7 +479,7 @@ export default function CostApp() {
         ))}
       </div>
 
-      {tab === "calc" && <CalcPanel menus={menus} onChange={handleMenuChange} onAdd={handleAddMenu} onDelete={handleDeleteMenu} onDuplicate={handleDuplicateMenu} />}
+      {tab === "calc" && <CalcPanel menus={menus} onChange={handleMenuChange} onAdd={handleAddMenu} onDelete={handleDeleteMenu} onDuplicate={handleDuplicateMenu} onMove={handleMoveMenu} />}
       {tab === "summary" && <SummaryPanel menus={menus} />}
       {tab === "reverse" && <ReversePanel menus={menus} />}
 
@@ -747,7 +758,7 @@ function StoreScreen({ user, stores, onSelect, onDelete, addingStore, setAddingS
 }
 
 // ── 원가 계산 패널 ─────────────────────────────────────────────────────────────
-function CalcPanel({ menus, onChange, onAdd, onDelete, onDuplicate }: { menus: Menu[]; onChange: (m: Menu) => void; onAdd: () => void; onDelete: (id: string) => void; onDuplicate: (m: Menu) => void; }) {
+function CalcPanel({ menus, onChange, onAdd, onDelete, onDuplicate, onMove }: { menus: Menu[]; onChange: (m: Menu) => void; onAdd: () => void; onDelete: (id: string) => void; onDuplicate: (m: Menu) => void; onMove: (id: string, dir: -1 | 1) => void; }) {
   return (
     <div>
       <div style={{ background:"rgba(245,200,66,0.07)", border:"1px solid rgba(245,200,66,0.2)", borderRadius:"var(--radius)", padding:"14px 18px", fontSize:13, color:"var(--text-sub)", lineHeight:1.7, marginBottom:20 }}>
@@ -760,7 +771,7 @@ function CalcPanel({ menus, onChange, onAdd, onDelete, onDuplicate }: { menus: M
         <div style={{ textAlign:"center", padding:"40px 0", color:"var(--text-sub)", fontSize:14 }}>아직 메뉴가 없어요. 아래 버튼으로 추가해보세요!</div>
       )}
       {menus.map((menu, idx) => (
-        <MenuCard key={menu.id} menu={menu} colorIdx={idx} onChange={onChange} onDelete={onDelete} onDuplicate={onDuplicate} />
+        <MenuCard key={menu.id} menu={menu} colorIdx={idx} onChange={onChange} onDelete={onDelete} onDuplicate={onDuplicate} onMove={onMove} isFirst={idx === 0} isLast={idx === menus.length - 1} />
       ))}
       <button onClick={onAdd} style={{ width:"100%", padding:14, borderRadius:"var(--radius)", border:"1px dashed var(--border)", background:"transparent", color:"var(--text-sub)", fontFamily:"'Noto Sans KR',sans-serif", fontSize:14, cursor:"pointer" }}>
         ＋ 메뉴 추가하기
@@ -772,7 +783,8 @@ function CalcPanel({ menus, onChange, onAdd, onDelete, onDuplicate }: { menus: M
 // ── 메뉴 카드 ─────────────────────────────────────────────────────────────────
 const MENU_COLORS = ["#f5c842","#ff6b35","#3dd68c","#60a5fa","#c084fc","#f472b6"];
 
-function MenuCard({ menu, colorIdx, onChange, onDelete, onDuplicate }: { menu: Menu; colorIdx: number; onChange: (m: Menu) => void; onDelete: (id: string) => void; onDuplicate: (m: Menu) => void; }) {
+function MenuCard({ menu, colorIdx, onChange, onDelete, onDuplicate, onMove, isFirst, isLast }: { menu: Menu; colorIdx: number; onChange: (m: Menu) => void; onDelete: (id: string) => void; onDuplicate: (m: Menu) => void; onMove: (id: string, dir: -1 | 1) => void; isFirst: boolean; isLast: boolean; }) {
+  const dragIdx = useRef<number | null>(null);
   const color = MENU_COLORS[colorIdx % MENU_COLORS.length];
   const cost = calcMenuCost(menu.ingredients || []);
   const rate = calcRate(cost, menu.price);
@@ -798,6 +810,15 @@ function MenuCard({ menu, colorIdx, onChange, onDelete, onDuplicate }: { menu: M
     }]});
   }
 
+  function reorderIng(from: number, to: number) {
+    if (from === to || from < 0 || to < 0) return;
+    const ings = [...(menu.ingredients||[])];
+    if (from >= ings.length || to >= ings.length) return;
+    const [moved] = ings.splice(from, 1);
+    ings.splice(to, 0, moved);
+    onChange({ ...menu, ingredients: ings });
+  }
+
   function removeIng(idx: number) {
     const ings = [...(menu.ingredients || [])];
     ings.splice(idx, 1);
@@ -817,6 +838,12 @@ function MenuCard({ menu, colorIdx, onChange, onDelete, onDuplicate }: { menu: M
               onChange={e => onChange({ ...menu, priceDate: e.target.value })} />
             {(() => { const b = dateBadge(menu.priceDate||""); return b ? <span style={{ fontSize:11, color:b.color, whiteSpace:"nowrap" }}>{b.text}</span> : null; })()}
           </div>
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:2, flexShrink:0 }}>
+          <button onClick={() => onMove(menu.id, -1)} disabled={isFirst} title="위로"
+            style={{ width:30, height:16, borderRadius:5, border:"1px solid var(--border)", background:"transparent", color: isFirst ? "var(--border)" : "var(--text-sub)", fontSize:9, cursor: isFirst ? "default" : "pointer", lineHeight:1, padding:0 }}>▲</button>
+          <button onClick={() => onMove(menu.id, 1)} disabled={isLast} title="아래로"
+            style={{ width:30, height:16, borderRadius:5, border:"1px solid var(--border)", background:"transparent", color: isLast ? "var(--border)" : "var(--text-sub)", fontSize:9, cursor: isLast ? "default" : "pointer", lineHeight:1, padding:0 }}>▼</button>
         </div>
         <button onClick={() => onDuplicate(menu)} title="이 메뉴 복제" style={{ ...S.btn(), padding:"9px 12px", flexShrink:0 }}>⧉</button>
         <button onClick={() => onDelete(menu.id)} style={{ ...S.btn("danger"), padding:"9px 12px", flexShrink:0 }}>✕</button>
@@ -876,7 +903,7 @@ function MenuCard({ menu, colorIdx, onChange, onDelete, onDuplicate }: { menu: M
 
       {/* 재료 헤더 (데스크톱 전용) */}
       <div className="ing-head">
-        {["재료명","구매량(g)","구매가(원)","수율(%)","사용량(g)","원가(원)",""].map((h,i) => (
+        {["","재료명","구매량(g)","구매가(원)","수율(%)","사용량(g)","원가(원)",""].map((h,i) => (
           <div key={i}>{h}</div>
         ))}
       </div>
@@ -885,7 +912,14 @@ function MenuCard({ menu, colorIdx, onChange, onDelete, onDuplicate }: { menu: M
       {(menu.ingredients || []).map((ing, idx) => {
         const ingCost = calcIngCost(ing);
         return (
-          <div key={ing.id} className="ing-row">
+          <div key={ing.id} className="ing-row"
+            onDragOver={e => { e.preventDefault(); }}
+            onDrop={e => { e.preventDefault(); if (dragIdx.current !== null) { reorderIng(dragIdx.current, idx); dragIdx.current = null; } }}
+          >
+            <div className="ing-drag" draggable
+              onDragStart={e => { dragIdx.current = idx; e.dataTransfer.effectAllowed = "move"; }}
+              onDragEnd={() => { dragIdx.current = null; }}
+              title="드래그해서 순서 변경">⠿</div>
             <div className="ing-field ing-name">
               <span className="ing-label">재료명</span>
               <input style={S.input} placeholder="재료명" value={ing.name} onChange={e => updateIng(idx,"name",e.target.value)} />

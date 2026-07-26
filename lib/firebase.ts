@@ -59,6 +59,7 @@ export interface Menu {
   targetRate: number;
   priceDate?: string;    // 기준날짜 (메뉴 단위)
   components?: string[]; // 메뉴구성 (함께 나가는 품목)
+  sortOrder?: number;    // 표시 순서
   ingredients: Ingredient[];
   costRate?: number;
   cost?: number;
@@ -104,7 +105,20 @@ export async function getMenus(uid: string, storeId: string): Promise<Menu[]> {
     orderBy("createdAt", "asc")
   );
   const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Menu));
+  const menus = snap.docs.map(d => ({ id: d.id, ...d.data() } as Menu));
+  // sortOrder 있으면 그 순서 우선, 없는 메뉴는 등록순 그대로 뒤에
+  return menus
+    .map((m, i) => ({ m, key: typeof m.sortOrder === "number" ? m.sortOrder : 1000 + i }))
+    .sort((a, b) => a.key - b.key)
+    .map(x => x.m);
+}
+
+// 메뉴 순서 일괄 저장 (배열 순서대로 sortOrder 부여)
+export async function saveMenuOrder(uid: string, storeId: string, menuIds: string[]) {
+  await Promise.all(menuIds.map((id, idx) =>
+    setDoc(doc(db, "users", uid, "stores", storeId, "menus", id),
+      { sortOrder: idx }, { merge: true })
+  ));
 }
 
 export async function saveMenu(uid: string, storeId: string, menu: Menu) {
