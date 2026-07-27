@@ -42,6 +42,11 @@ function calcRate(cost: number, price: number) {
   return price > 0 ? (cost / price) * 100 : 0;
 }
 
+// 목표 원가율 기준 권장 판매가 (500원 단위 올림) — 메뉴 카드 배지·일괄 진단 공용
+function recommendPrice(cost: number, targetRate: number) {
+  return cost > 0 && targetRate > 0 ? Math.ceil(cost / (targetRate / 100) / 500) * 500 : 0;
+}
+
 function fmt(n: number) { return Math.round(n).toLocaleString("ko-KR"); }
 function fmtDec(n: number) { return n.toLocaleString("ko-KR", { maximumFractionDigits: 0 }); }
 
@@ -1138,6 +1143,14 @@ function MenuCard({ menu, colorIdx, onChange, onDelete, onDuplicate, onMove, isF
             </div>
           )}
 
+          {/* 목표 초과 시 권장가 배지 */}
+          {rate > target && (
+            <div style={{ marginTop:10, padding:"9px 12px", borderRadius:8, background:"rgba(255,92,92,0.08)", border:"1px solid rgba(255,92,92,0.3)", fontSize:12, display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+              <span style={{ color:"var(--red)", fontWeight:700 }}>⚠️ 목표 원가율 초과</span>
+              <span style={{ color:"var(--text)" }}>권장 판매가 <strong style={{ fontFamily:"'DM Mono',monospace", fontSize:14, color:"var(--accent)" }}>{fmt(recommendPrice(cost, target))}원</strong> <span style={{ fontSize:11, color:"var(--text-sub)" }}>(+{fmt(recommendPrice(cost, target) - menu.price)}원)</span></span>
+            </div>
+          )}
+
           {/* 원가율 추이 */}
           <button onClick={toggleHistory} style={{ width:"100%", marginTop:12, padding:"8px", borderRadius:8, border:"1px solid var(--border)", background:"transparent", color: showHistory ? "var(--accent)" : "var(--text-sub)", fontFamily:"'Noto Sans KR',sans-serif", fontSize:12, cursor:"pointer" }}>
             📈 원가율 추이 {showHistory ? "접기 ▲" : "보기 ▼"}
@@ -1231,6 +1244,17 @@ function SummaryPanel({ menus }: { menus: Menu[] }) {
     return { m, cost, rate, color: MENU_COLORS[menus.indexOf(m) % MENU_COLORS.length] };
   });
 
+  // 전 메뉴 판매가 진단 — 판정은 원가율 vs 목표로, 권장가는 500원 올림 표시 (초과 메뉴 우선, 갭 큰 순)
+  const priceDiag = menuStats
+    .filter(x => x.cost > 0)
+    .map(x => {
+      const t = x.m.targetRate || 30;
+      const rec = recommendPrice(x.cost, t);
+      return { ...x, rec, gap: rec - x.m.price, over: x.rate > t };
+    })
+    .sort((a, b) => (Number(b.over) - Number(a.over)) || (b.gap - a.gap));
+  const needRaise = priceDiag.filter(x => x.over).length;
+
   const avgRate = menuStats.length > 0
     ? menuStats.reduce((s, x) => s + x.rate, 0) / menuStats.length : 0;
   const maxRate = menuStats.length > 0 ? menuStats.reduce((a, b) => a.rate > b.rate ? a : b) : null;
@@ -1321,9 +1345,42 @@ function SummaryPanel({ menus }: { menus: Menu[] }) {
         </div>
       )}
 
-      {/* ③ 단가 경고 */}
+      {/* ③ 전 메뉴 판매가 진단 */}
       <div style={S.card}>
-        <div style={{ fontSize:12, fontWeight:700, color:"var(--text-sub)", letterSpacing:"0.06em", marginBottom:16, textTransform:"uppercase" }}>③ 단가 기준일 경과 경고</div>
+        <div style={{ fontSize:12, fontWeight:700, color:"var(--text-sub)", letterSpacing:"0.06em", marginBottom:6, textTransform:"uppercase" }}>③ 전 메뉴 판매가 진단</div>
+        <div style={{ fontSize:11, color:"var(--text-sub)", marginBottom:14 }}>각 메뉴의 목표 원가율 기준 권장가와 현재가를 비교합니다. 갭이 큰 메뉴부터 가격을 손보세요.</div>
+        {priceDiag.length === 0 ? (
+          <div style={{ fontSize:13, color:"var(--text-sub)" }}>판매가와 재료가 입력된 메뉴가 없습니다</div>
+        ) : (
+          <>
+            <div style={{ fontSize:12, marginBottom:12, fontWeight:700, color: needRaise > 0 ? "var(--red)" : "var(--green)" }}>
+              {needRaise > 0 ? `🔺 인상 검토 ${needRaise}개 / 적정 ${priceDiag.length - needRaise}개` : `✅ 전 메뉴 ${priceDiag.length}개 모두 적정가입니다`}
+            </div>
+            {priceDiag.map(({ m, rate, rec, gap, over, color }) => (
+              <div key={m.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:10, padding:"9px 0", borderBottom:"1px solid var(--border)", flexWrap:"wrap" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0 }}>
+                  <span style={{ width:8, height:8, borderRadius:"50%", background:color, flexShrink:0, display:"inline-block" }} />
+                  <span style={{ fontSize:13, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.name||"(이름 없음)"}</span>
+                  <span style={{ fontSize:11, color:"var(--text-sub)", flexShrink:0 }}>원가율 {rate.toFixed(1)}% / 목표 {m.targetRate || 30}%</span>
+                </div>
+                <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
+                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:12, color:"var(--text-sub)" }}>{over ? `${fmt(m.price)}원 → ${fmt(rec)}원` : `${fmt(m.price)}원`}</span>
+                  {over
+                    ? <span style={{ fontSize:11, fontWeight:700, color:"var(--red)", background:"rgba(255,92,92,0.1)", border:"1px solid rgba(255,92,92,0.3)", borderRadius:99, padding:"3px 9px" }}>+{fmt(gap)}원 인상 검토</span>
+                    : <span style={{ fontSize:11, fontWeight:700, color:"var(--green)", background:"rgba(61,214,140,0.08)", border:"1px solid rgba(61,214,140,0.25)", borderRadius:99, padding:"3px 9px" }}>✅ 적정</span>}
+                </div>
+              </div>
+            ))}
+            <div style={{ fontSize:11, color:"var(--text-sub)", marginTop:10, lineHeight:1.6 }}>
+              ※ 권장가 = 식재료 원가 ÷ 목표 원가율 (500원 단위 올림). 홀 기준이며, 배달가는 🎯 판매가 역산 탭에서 수수료까지 넣고 계산하세요.
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ④ 단가 경고 */}
+      <div style={S.card}>
+        <div style={{ fontSize:12, fontWeight:700, color:"var(--text-sub)", letterSpacing:"0.06em", marginBottom:16, textTransform:"uppercase" }}>④ 단가 기준일 경과 경고</div>
         {staleIngs.length === 0 ? (
           <div style={{ fontSize:13, color:"var(--green)", display:"flex", alignItems:"center", gap:8 }}>
             <span>✅</span>
