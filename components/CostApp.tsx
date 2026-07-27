@@ -239,6 +239,17 @@ export default function CostApp() {
     await saveMenu(user.uid, selectedStore.id, menu);
   }
 
+  // 역산 탭에서 시뮬레이션 판매가를 메뉴에 반영 (즉시 저장 → 추이 스냅샷도 자동 기록)
+  async function handleApplyPrice(menuId: string, price: number) {
+    if (!user || !selectedStore) return;
+    const m = menus.find(x => x.id === menuId);
+    if (!m) return;
+    const updated = { ...m, price };
+    setMenus(prev => prev.map(x => x.id === menuId ? updated : x));
+    await saveMenu(user.uid, selectedStore.id, updated);
+    toast(`✅ ${m.name || "메뉴"} 판매가 ${price.toLocaleString("ko-KR")}원으로 반영됐습니다`);
+  }
+
   function handleMenuChange(updated: Menu) {
     setMenus(prev => prev.map(m => m.id === updated.id ? updated : m));
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
@@ -487,7 +498,7 @@ export default function CostApp() {
 
       {tab === "calc" && <CalcPanel menus={menus} onChange={handleMenuChange} onAdd={handleAddMenu} onDelete={handleDeleteMenu} onDuplicate={handleDuplicateMenu} onMove={handleMoveMenu} uid={user.uid} storeId={selectedStore.id} />}
       {tab === "summary" && <SummaryPanel menus={menus} />}
-      {tab === "reverse" && <ReversePanel menus={menus} />}
+      {tab === "reverse" && <ReversePanel menus={menus} onApplyPrice={handleApplyPrice} />}
 
       <div style={{
         position:"fixed", bottom:32, left:"50%",
@@ -1353,7 +1364,7 @@ function SummaryPanel({ menus }: { menus: Menu[] }) {
 }
 
 // ── 판매가 역산 패널 ───────────────────────────────────────────────────────────
-function ReversePanel({ menus }: { menus: Menu[] }) {
+function ReversePanel({ menus, onApplyPrice }: { menus: Menu[]; onApplyPrice?: (menuId: string, price: number) => Promise<void> }) {
   const [cost, setCost] = useState(0);
   const [selectedMenuId, setSelectedMenuId] = useState("");
   const [targetRate, setTargetRate] = useState(0);    // placeholder 35
@@ -1361,23 +1372,32 @@ function ReversePanel({ menus }: { menus: Menu[] }) {
   const [payFee, setPayFee] = useState(3);            // 결제정산이용료
   const [deliveryCost, setDeliveryCost] = useState(3400); // 1등급 점주 부담 배달비
   const [packCost, setPackCost] = useState(500);      // 기본 500원
+  const [simPrice, setSimPrice] = useState(0);        // 시뮬레이션 판매가 (0이면 최소 판매가 기준)
+  const [applying, setApplying] = useState(false);
+
+  // 현재 선택된 메뉴와 저장돼 있는 판매가
+  const selectedMenu = menus.find(m => m.id === selectedMenuId);
+  const currentPrice = selectedMenu?.price || 0;
 
   // 식재료만 고려한 최소 판매가
   const basic = targetRate > 0 && cost > 0 ? cost / (targetRate / 100) : 0;
   const minPrice = basic > 0 ? Math.ceil(basic / 500) * 500 : 0;
 
-  // 최소 판매가 기준 비용 구성 비율 (수수료·배달비는 부가세 별도 → ×1.1)
-  const foodPct = minPrice > 0 ? (cost / minPrice) * 100 : 0;
+  // 비용 구성 기준 가격 — 시뮬레이션 값이 있으면 그 가격, 없으면 최소 판매가
+  const effectivePrice = simPrice > 0 ? simPrice : minPrice;
+
+  // 비용 구성 비율 (수수료·배달비는 부가세 별도 → ×1.1)
+  const foodPct = effectivePrice > 0 ? (cost / effectivePrice) * 100 : 0;
   const feePct = delivFee * 1.1;                                        // 판매가 비례
   const payPct = payFee * 1.1;                                          // 판매가 비례
-  const deliveryPct = minPrice > 0 ? (deliveryCost * 1.1 / minPrice) * 100 : 0;
-  const packPct = minPrice > 0 ? (packCost / minPrice) * 100 : 0;
+  const deliveryPct = effectivePrice > 0 ? (deliveryCost * 1.1 / effectivePrice) * 100 : 0;
+  const packPct = effectivePrice > 0 ? (packCost / effectivePrice) * 100 : 0;
   const totalPct = foodPct + feePct + payPct + deliveryPct + packPct;
   const remainPct = 100 - totalPct;
 
   // 전체 배달경비 (식재료 제외 — 수수료·결제·배달비·포장재)
-  const deliveryExpense = minPrice > 0
-    ? minPrice * (feePct + payPct) / 100 + deliveryCost * 1.1 + packCost
+  const deliveryExpense = effectivePrice > 0
+    ? effectivePrice * (feePct + payPct) / 100 + deliveryCost * 1.1 + packCost
     : 0;
   const deliveryExpensePct = feePct + payPct + deliveryPct + packPct;
 
@@ -1385,11 +1405,13 @@ function ReversePanel({ menus }: { menus: Menu[] }) {
 
   function selectMenu(id: string) {
     setSelectedMenuId(id);
-    if (!id) return;
+    if (!id) { setSimPrice(0); return; }
     const m = menus.find(x => x.id === id);
     if (m) {
       const c = Math.round(calcMenuCost(m.ingredients||[]));
       setCost(c);
+      // 현재 판매가를 시뮬레이션 시작값으로
+      setSimPrice(m.price || 0);
       // 메뉴에 판매가가 있으면 실제 원가율도 자동 입력
       if (m.price > 0 && c > 0) {
         setTargetRate(parseFloat(((c / m.price) * 100).toFixed(1)));
@@ -1397,11 +1419,28 @@ function ReversePanel({ menus }: { menus: Menu[] }) {
     }
   }
 
+  // ±500원 단위 조정 — 시뮬레이션 값이 없으면 현재가(없으면 최소가)에서 시작
+  function stepPrice(delta: number) {
+    const base = simPrice > 0 ? simPrice : (currentPrice > 0 ? currentPrice : minPrice);
+    setSimPrice(Math.max(0, base + delta));
+  }
+
+  async function applyPrice() {
+    if (!selectedMenuId || !onApplyPrice || simPrice <= 0 || applying) return;
+    setApplying(true);
+    try { await onApplyPrice(selectedMenuId, simPrice); }
+    finally { setApplying(false); }
+  }
+
+  const stepBtnStyle: React.CSSProperties = { width:56, padding:"10px 0", border:"1px solid var(--border)", borderRadius:8, background:"var(--surface2)", color:"var(--text)", fontFamily:"'DM Mono',monospace", fontSize:13, fontWeight:700, cursor:"pointer", flexShrink:0 };
+  const quickBtnStyle: React.CSSProperties = { padding:"10px 12px", border:"1px solid var(--border)", borderRadius:8, background:"transparent", color:"var(--text-sub)", fontFamily:"'Noto Sans KR',sans-serif", fontSize:12, cursor:"pointer", flexShrink:0 };
+
   return (
     <div>
       <div style={{ background:"rgba(245,200,66,0.07)", border:"1px solid rgba(245,200,66,0.2)", borderRadius:"var(--radius)", padding:"14px 18px", fontSize:13, color:"var(--text-sub)", lineHeight:1.7, marginBottom:20 }}>
         <strong style={{ color:"var(--accent)" }}>🎯 판매가 역산이란?</strong><br />
         식재료 원가와 목표 원가율을 넣으면 <strong style={{ color:"var(--text)" }}>최소 판매가를 자동 계산</strong>합니다.<br />
+        메뉴를 불러오면 <strong style={{ color:"var(--text)" }}>판매가를 이리저리 바꿔보고 마음에 들 때 바로 반영</strong>할 수 있어요.<br />
         신메뉴 기획이면 대략적인 원가만 입력해도 충분해요.
       </div>
 
@@ -1474,13 +1513,47 @@ function ReversePanel({ menus }: { menus: Menu[] }) {
         {minPrice > 0 && (
           <>
             <div style={{ height:1, background:"var(--border)", margin:"0 0 18px" }} />
-            <div style={{ fontSize:12, fontWeight:700, color:"var(--text-sub)", letterSpacing:"0.05em", marginBottom:14, textTransform:"uppercase" }}>이 판매가로 배달 판매 시 비용 구성</div>
+
+            {/* 판매가 시뮬레이션 */}
+            <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:10, padding:"16px 18px", marginBottom:18 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12, flexWrap:"wrap", gap:8 }}>
+                <span style={{ fontSize:12, fontWeight:700, color:"var(--text-sub)", letterSpacing:"0.05em", textTransform:"uppercase" }}>💰 판매가 시뮬레이션</span>
+                {selectedMenuId && (
+                  currentPrice > 0
+                    ? <span style={{ fontSize:12, color:"var(--text-sub)" }}>현재 판매가 <strong style={{ color:"var(--text)", fontFamily:"'DM Mono',monospace", fontSize:14 }}>{fmt(currentPrice)}원</strong></span>
+                    : <span style={{ fontSize:12, color:"var(--text-sub)" }}>아직 판매가 미설정 메뉴</span>
+                )}
+              </div>
+              <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
+                <button onClick={() => stepPrice(-500)} style={stepBtnStyle}>−500</button>
+                <div style={{ position:"relative", flex:1, minWidth:130 }}>
+                  <input type="number" placeholder={String(minPrice)}
+                    value={simPrice||""} onChange={e => setSimPrice(Math.max(0, parseFloat(e.target.value)||0))}
+                    style={{ ...S.input, fontFamily:"'DM Mono',monospace", fontSize:16, textAlign:"center", paddingRight:30 }} />
+                  <span style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>원</span>
+                </div>
+                <button onClick={() => stepPrice(500)} style={stepBtnStyle}>+500</button>
+                {currentPrice > 0 && <button onClick={() => setSimPrice(currentPrice)} style={quickBtnStyle}>현재가로</button>}
+                <button onClick={() => setSimPrice(minPrice)} style={quickBtnStyle}>최소가로</button>
+              </div>
+              {simPrice > 0 && (
+                <div style={{ display:"flex", gap:16, marginTop:12, flexWrap:"wrap", fontSize:12, color:"var(--text-sub)" }}>
+                  <span>원가율 <strong style={{ fontFamily:"'DM Mono',monospace", fontSize:14, color: targetRate > 0 && foodPct > targetRate ? "var(--red)" : "var(--green)" }}>{foodPct.toFixed(1)}%</strong>{targetRate > 0 && <span> (목표 {targetRate}%)</span>}</span>
+                  <span>남는 몫 <strong style={{ fontFamily:"'DM Mono',monospace", fontSize:14, color: remainPct < 30 ? "var(--red)" : "var(--green)" }}>{remainPct.toFixed(1)}%</strong></span>
+                  {currentPrice > 0 && simPrice !== currentPrice && (
+                    <span>현재가 대비 <strong style={{ fontFamily:"'DM Mono',monospace", fontSize:14, color: simPrice > currentPrice ? "var(--green)" : "var(--red)" }}>{simPrice > currentPrice ? "+" : "−"}{fmt(Math.abs(simPrice - currentPrice))}원</strong></span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div style={{ fontSize:12, fontWeight:700, color:"var(--text-sub)", letterSpacing:"0.05em", marginBottom:14, textTransform:"uppercase" }}>이 판매가({fmt(effectivePrice)}원)로 배달 판매 시 비용 구성</div>
 
             {/* 비용 항목 */}
             {[
               ["식재료", `${fmt(cost)}원`, foodPct, "var(--accent)"],
-              ["중개수수료 (×1.1)", `${fmt(minPrice * feePct / 100)}원`, feePct, "#60a5fa"],
-              ["결제정산이용료 (×1.1)", `${fmt(minPrice * payPct / 100)}원`, payPct, "#3dd68c"],
+              ["중개수수료 (×1.1)", `${fmt(effectivePrice * feePct / 100)}원`, feePct, "#60a5fa"],
+              ["결제정산이용료 (×1.1)", `${fmt(effectivePrice * payPct / 100)}원`, payPct, "#3dd68c"],
               ["점주 부담 배달비 (×1.1)", `${fmt(deliveryCost*1.1)}원`, deliveryPct, "#c084fc"],
               ["포장재·기타", `${fmt(packCost)}원`, packPct, "#f472b6"],
             ].map(([label, detail, pct, color]) => (
@@ -1517,6 +1590,26 @@ function ReversePanel({ menus }: { menus: Menu[] }) {
               <div style={{ fontSize:12, color:"var(--red)", marginTop:12, textAlign:"center" }}>
                 ⚠️ 남는 몫이 30% 미만입니다. 인건비·임대료까지 빼면 적자 위험이 큽니다. 판매가 인상 또는 원가 절감을 검토하세요.
               </div>
+            )}
+
+            {/* 시뮬레이션 가격을 메뉴 판매가에 반영 */}
+            {selectedMenuId && onApplyPrice && simPrice > 0 && (
+              <button onClick={applyPrice} disabled={applying || simPrice === currentPrice}
+                style={{
+                  width:"100%", marginTop:16, padding:"14px", border:"none", borderRadius:10,
+                  background: simPrice === currentPrice ? "var(--surface)" : "var(--accent)",
+                  color: simPrice === currentPrice ? "var(--text-sub)" : "#1a1a1a",
+                  fontFamily:"'Noto Sans KR',sans-serif", fontSize:14, fontWeight:700,
+                  cursor: simPrice === currentPrice || applying ? "default" : "pointer",
+                  opacity: applying ? 0.6 : 1,
+                  boxShadow: simPrice === currentPrice ? "none" : "0 4px 18px rgba(245,200,66,0.25)",
+                  transition:"all 0.2s",
+                }}>
+                {applying ? "반영 중..."
+                  : simPrice === currentPrice ? "현재 판매가와 같습니다"
+                  : currentPrice > 0 ? `✅ 판매가 ${fmt(currentPrice)}원 → ${fmt(simPrice)}원으로 반영`
+                  : `✅ 판매가 ${fmt(simPrice)}원으로 반영`}
+              </button>
             )}
           </>
         )}
