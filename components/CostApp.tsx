@@ -1430,7 +1430,7 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
   const [deliveryCost, setDeliveryCost] = useState(3400); // 1등급 점주 부담 배달비
   const [packCost, setPackCost] = useState(500);      // 기본 500원
   const [simPrice, setSimPrice] = useState(0);        // 시뮬레이션 판매가 (0이면 최소 판매가 기준)
-  const [targetRemainStr, setTargetRemainStr] = useState("35"); // 배달 기준 목표 남는 몫(%) — 0 입력 허용 위해 문자열
+  const [targetRemainStr, setTargetRemainStr] = useState("35"); // 배달 기준 목표 공헌이익률(%) — 0 입력 허용 위해 문자열
   const [applying, setApplying] = useState(false);
 
   // 현재 선택된 메뉴와 저장돼 있는 판매가
@@ -1483,7 +1483,7 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
     setSimPrice(Math.max(0, base + delta));
   }
 
-  // 배달 기준 역산 — 목표 남는 몫(%)을 확보하는 판매가를 거꾸로 계산
+  // 배달 기준 역산 — 목표 공헌이익률(%)을 확보하는 판매가를 거꾸로 계산
   // P = (식재료 + 배달비×1.1 + 포장재) ÷ (1 − 수수료율×1.1 − 목표몫), 500원 단위 올림
   const targetRemain = parseFloat(targetRemainStr);
   const validRemain = !Number.isNaN(targetRemain) && targetRemain >= 0;
@@ -1499,7 +1499,7 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
     if (remainSolvable) solveWithRemain(targetRemain);
   }
 
-  // 손익분기 판매가 (남는 몫 0%) — 식재료+배달경비만 겨우 건지는 데드라인, 100원 단위 올림
+  // 손익분기 판매가 (공헌이익 0) — 변동비만 겨우 건지는 데드라인, 100원 단위 올림
   const beDenom = 100 - (delivFee + payFee) * 1.1;
   const breakEvenPrice = cost > 0 && beDenom > 0
     ? Math.ceil((cost + deliveryCost * 1.1 + packCost) * 100 / beDenom / 100) * 100
@@ -1661,9 +1661,9 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
                 )}
               </div>
 
-              {/* 배달 기준 역산 — 목표 남는 몫으로 판매가 거꾸로 찾기 */}
+              {/* 배달 기준 역산 — 목표 공헌이익률로 판매가 거꾸로 찾기 */}
               <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap", padding:"10px 12px", marginBottom:12, background:"rgba(245,200,66,0.06)", border:"1px dashed rgba(245,200,66,0.3)", borderRadius:8 }}>
-                <span style={{ fontSize:12, color:"var(--text)" }}>🛵 배달로 팔 때 남는 몫</span>
+                <span style={{ fontSize:12, color:"var(--text)" }}>🛵 배달로 팔 때 <strong>공헌이익률</strong><span style={{ fontSize:11, color:"var(--text-sub)" }}> (남는 몫)</span></span>
                 <div style={{ position:"relative", width:74, flexShrink:0 }}>
                   <input type="number" value={targetRemainStr} onChange={e => setTargetRemainStr(e.target.value)}
                     style={{ ...S.input, fontFamily:"var(--font-num)", fontSize:14, textAlign:"center", padding:"7px 22px 7px 8px" }} />
@@ -1708,7 +1708,7 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
               {simPrice > 0 && (
                 <div style={{ display:"flex", gap:16, marginTop:12, flexWrap:"wrap", fontSize:12, color:"var(--text-sub)" }}>
                   <span>원가율 <strong style={{ fontFamily:"var(--font-num)", fontSize:14, color: targetRate > 0 && foodPct > targetRate ? "var(--red)" : "var(--green)" }}>{foodPct.toFixed(1)}%</strong>{targetRate > 0 && <span> (목표 {targetRate}%)</span>}</span>
-                  <span>남는 몫 <strong style={{ fontFamily:"var(--font-num)", fontSize:14, color: remainPct < 30 ? "var(--red)" : "var(--green)" }}>{remainPct.toFixed(1)}%</strong></span>
+                  <span>공헌이익률 <strong style={{ fontFamily:"var(--font-num)", fontSize:14, color: remainPct < 30 ? "var(--red)" : "var(--green)" }}>{remainPct.toFixed(1)}%</strong></span>
                   {currentPrice > 0 && simPrice !== currentPrice && (
                     <span>현재가 대비 <strong style={{ fontFamily:"var(--font-num)", fontSize:14, color: simPrice > currentPrice ? "var(--green)" : "var(--red)" }}>{simPrice > currentPrice ? "+" : "−"}{fmt(Math.abs(simPrice - currentPrice))}원</strong></span>
                   )}
@@ -1751,17 +1751,17 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
                 <div style={{ fontFamily:"var(--font-num)", fontSize:24, fontWeight:700, color: totalPct > 70 ? "var(--red)" : "var(--text)" }}>{totalPct.toFixed(1)}%</div>
               </div>
               <div style={{ background:"var(--surface)", border:`1px solid ${remainPct < 30 ? "rgba(255,92,92,0.4)" : "rgba(61,214,140,0.3)"}`, borderRadius:10, padding:"14px 16px", textAlign:"center" }}>
-                <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:4 }}>남는 몫 = 공헌이익 (고정비+이익)</div>
+                <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:4 }}>공헌이익률 (고정비+이익)</div>
                 <div style={{ fontFamily:"var(--font-num)", fontSize:24, fontWeight:700, color: remainPct < 30 ? "var(--red)" : "var(--green)" }}>{remainPct.toFixed(1)}%</div>
               </div>
             </div>
 
-            {/* 남는 몫 해부 — 벤치마크 기준 진짜 이익 */}
+            {/* 공헌이익 해부 — 고정비 차감 후 진짜 이익 */}
             <div style={{ marginTop:14, background:"var(--surface)", border:"1px solid var(--border)", borderRadius:10, padding:"16px 18px" }}>
               <div style={{ fontSize:12, fontWeight:700, color:"var(--text-sub)", letterSpacing:"0.05em", textTransform:"uppercase", marginBottom:4 }}>🔍 공헌이익 해부 — 이게 다 내 돈이 아닙니다</div>
-              <div style={{ fontSize:11, color:"var(--text-sub)", marginBottom:12, lineHeight:1.6 }}>앞에서 말한 &lsquo;남는 몫&rsquo;이 회계용어로 <strong style={{ color:"var(--text)" }}>공헌이익</strong>입니다. 판매가에서 팔릴 때마다 나가는 변동비(식재료·수수료·결제·배달비·포장재)만 뺀 값이라, 여기서 고정비를 전부 빼야 내 몫이 나옵니다.</div>
+              <div style={{ fontSize:11, color:"var(--text-sub)", marginBottom:12, lineHeight:1.6 }}><strong style={{ color:"var(--text)" }}>공헌이익</strong>은 판매가에서 팔릴 때마다 나가는 변동비(식재료·수수료·결제·배달비·포장재)만 뺀 값입니다. 고정비는 아직 하나도 안 빠졌습니다. 여기서 고정비를 전부 빼야 내 몫이 나옵니다.</div>
               <div style={{ display:"flex", justifyContent:"space-between", fontSize:13, color:"var(--text)", padding:"5px 0" }}>
-                <span>공헌이익 <span style={{ fontSize:11, color:"var(--text-sub)" }}>(= 남는 몫)</span></span>
+                <span>공헌이익</span>
                 <span style={{ fontFamily:"var(--font-num)" }}>{fmt(remainAmt)}원 <span style={{ fontSize:11, color:"var(--text-sub)" }}>({remainPct.toFixed(1)}%)</span></span>
               </div>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", fontSize:13, color:"var(--text-sub)", padding:"5px 0", gap:8 }}>
@@ -1803,7 +1803,7 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
             </div>
             {remainPct < 30 && (
               <div style={{ fontSize:12, color:"var(--red)", marginTop:12, textAlign:"center" }}>
-                ⚠️ 남는 몫이 30% 미만입니다. 인건비·임대료까지 빼면 적자 위험이 큽니다. 판매가 인상 또는 원가 절감을 검토하세요.
+                ⚠️ 공헌이익률이 30% 미만입니다. 여기서 고정비까지 빼면 적자 위험이 큽니다. 판매가 인상 또는 원가 절감을 검토하세요.
               </div>
             )}
 
