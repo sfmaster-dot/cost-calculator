@@ -1867,7 +1867,11 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
                 <>
                   <div style={{ padding:"14px 16px", borderRadius:8, background:"rgba(245,200,66,0.06)", border:"1px solid rgba(245,200,66,0.25)", textAlign:"center" }}>
                     <div style={{ fontSize:11, color:"var(--text-sub)", marginBottom:4 }}>이 메뉴만 판다고 보면, 손익분기 주문수는</div>
-                    <div style={{ fontFamily:"var(--font-num)", fontSize:26, color:"var(--accent)", fontWeight:800 }}>월 {fmt(beOrders)}건</div>
+                    <div style={{ fontFamily:"var(--font-num)", fontSize:30, color:"var(--accent)", fontWeight:800, lineHeight:1.2 }}>
+                      <span style={{ fontFamily:"var(--font-sans)", fontSize:17, fontWeight:700, marginRight:5, opacity:0.85 }}>월</span>
+                      {fmt(beOrders)}
+                      <span style={{ fontFamily:"var(--font-sans)", fontSize:17, fontWeight:700, marginLeft:3, opacity:0.85 }}>건</span>
+                    </div>
                     <div style={{ fontSize:12, color:"var(--text-sub)", marginTop:4 }}>하루 약 {(beOrders/30).toFixed(1)}건 · 30일 기준</div>
                   </div>
                   {monthlyOrders > 0 && (
@@ -1932,7 +1936,7 @@ function AnimatedPrice({ price }: { price: number }) {
   if (price <= 0) return <div style={{ fontFamily:"var(--font-num)", fontSize:34, color:"var(--text-sub)" }}>—</div>;
   return (
     <div key={price} className="price-anim" style={{
-      fontFamily:"'Bebas Neue', sans-serif",
+      fontFamily:"'Bebas Neue', var(--font-sans)",
       fontSize:64, lineHeight:1,
       color:"var(--accent)",
       letterSpacing:"0.03em",
