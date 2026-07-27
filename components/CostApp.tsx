@@ -1505,9 +1505,10 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
     ? Math.ceil((cost + deliveryCost * 1.1 + packCost) * 100 / beDenom / 100) * 100
     : 0;
 
-  // 남는 몫 해부 — 인건비·임대료 비율은 매장마다 달라서 직접 입력 (기본 20%·5%, 매장별 기억)
+  // 공헌이익 해부 — 고정비 비율은 매장마다 달라서 직접 입력 (기본 20%·5%·5%, 매장별 기억)
   const [laborPctStr, setLaborPctStr] = useState("20");
   const [rentPctStr, setRentPctStr] = useState("5");
+  const [etcPctStr, setEtcPctStr] = useState("5");
 
   // 매장별 인건비·임대료 비율 기억 (localStorage)
   // 로드가 상태에 반영되기 전에 저장 이펙트가 기본값을 덮어쓰는 레이스 방지용 플래그
@@ -1519,27 +1520,32 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
       const saved = localStorage.getItem(`dgm-cost-fixed-pct-${storeId}`);
       if (saved) {
         const p = JSON.parse(saved);
-        if (p.labor != null) setLaborPctStr(String(p.labor));
-        if (p.rent != null) setRentPctStr(String(p.rent));
+        setLaborPctStr(p.labor != null ? String(p.labor) : "20");
+        setRentPctStr(p.rent != null ? String(p.rent) : "5");
+        setEtcPctStr(p.etc != null ? String(p.etc) : "5");
       } else {
         setLaborPctStr("20");
         setRentPctStr("5");
+        setEtcPctStr("5");
       }
     } catch {}
   }, [storeId]);
   useEffect(() => {
     if (skipNextFixedPctSave.current) { skipNextFixedPctSave.current = false; return; }
     if (!storeId || typeof window === "undefined") return;
-    try { localStorage.setItem(`dgm-cost-fixed-pct-${storeId}`, JSON.stringify({ labor: laborPctStr, rent: rentPctStr })); } catch {}
-  }, [storeId, laborPctStr, rentPctStr]);
+    try { localStorage.setItem(`dgm-cost-fixed-pct-${storeId}`, JSON.stringify({ labor: laborPctStr, rent: rentPctStr, etc: etcPctStr })); } catch {}
+  }, [storeId, laborPctStr, rentPctStr, etcPctStr]);
 
   const laborPct = parseFloat(laborPctStr) || 0;
   const rentPct = parseFloat(rentPctStr) || 0;
-  const remainAmt = effectivePrice * remainPct / 100;
+  const etcPct = parseFloat(etcPctStr) || 0;
+  const remainAmt = effectivePrice * remainPct / 100;   // = 건당 공헌이익
   const laborAmt = effectivePrice * laborPct / 100;
   const rentAmt = effectivePrice * rentPct / 100;
-  const trueProfitAmt = remainAmt - laborAmt - rentAmt;
-  const trueProfitPct = remainPct - laborPct - rentPct;
+  const etcAmt = effectivePrice * etcPct / 100;
+  const fixedPctTotal = laborPct + rentPct + etcPct;
+  const trueProfitAmt = remainAmt - laborAmt - rentAmt - etcAmt;
+  const trueProfitPct = remainPct - fixedPctTotal;
 
   async function applyPrice() {
     if (!selectedMenuId || !onApplyPrice || simPrice <= 0 || applying) return;
@@ -1668,7 +1674,7 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
                 </div>
                 {breakEvenPrice > 0 && (
                   <div style={{ fontSize:11, color:"var(--red)", width:"100%", lineHeight:1.6 }}>
-                    🚨 손익분기 판매가 <strong style={{ fontFamily:"'DM Mono',monospace", fontSize:13 }}>{fmt(breakEvenPrice)}원</strong> — 이 밑으로 팔면 식재료·배달경비도 못 건지는 즉시 적자입니다
+                    🚨 손익분기 판매가 <strong style={{ fontFamily:"'DM Mono',monospace", fontSize:13 }}>{fmt(breakEvenPrice)}원</strong> — 공헌이익이 0이 되는 지점입니다. 이 밑으로 팔면 고정비는커녕 변동비도 못 건져, 팔수록 손해입니다
                   </div>
                 )}
               </div>
@@ -1731,16 +1737,17 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
                 <div style={{ fontFamily:"'DM Mono',monospace", fontSize:24, color: totalPct > 70 ? "var(--red)" : "var(--text)" }}>{totalPct.toFixed(1)}%</div>
               </div>
               <div style={{ background:"var(--surface)", border:`1px solid ${remainPct < 30 ? "rgba(255,92,92,0.4)" : "rgba(61,214,140,0.3)"}`, borderRadius:10, padding:"14px 16px", textAlign:"center" }}>
-                <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:4 }}>남는 몫 (인건비·임대료·이익)</div>
+                <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:4 }}>남는 몫 = 공헌이익 (고정비+이익)</div>
                 <div style={{ fontFamily:"'DM Mono',monospace", fontSize:24, color: remainPct < 30 ? "var(--red)" : "var(--green)" }}>{remainPct.toFixed(1)}%</div>
               </div>
             </div>
 
             {/* 남는 몫 해부 — 벤치마크 기준 진짜 이익 */}
             <div style={{ marginTop:14, background:"var(--surface)", border:"1px solid var(--border)", borderRadius:10, padding:"16px 18px" }}>
-              <div style={{ fontSize:12, fontWeight:700, color:"var(--text-sub)", letterSpacing:"0.05em", textTransform:"uppercase", marginBottom:12 }}>🔍 남는 몫 해부 — 이게 다 내 돈이 아닙니다</div>
+              <div style={{ fontSize:12, fontWeight:700, color:"var(--text-sub)", letterSpacing:"0.05em", textTransform:"uppercase", marginBottom:4 }}>🔍 공헌이익 해부 — 이게 다 내 돈이 아닙니다</div>
+              <div style={{ fontSize:11, color:"var(--text-sub)", marginBottom:12, lineHeight:1.6 }}>앞에서 말한 &lsquo;남는 몫&rsquo;이 회계용어로 <strong style={{ color:"var(--text)" }}>공헌이익</strong>입니다. 판매가에서 팔릴 때마다 나가는 변동비(식재료·수수료·결제·배달비·포장재)만 뺀 값이라, 여기서 고정비를 전부 빼야 내 몫이 나옵니다.</div>
               <div style={{ display:"flex", justifyContent:"space-between", fontSize:13, color:"var(--text)", padding:"5px 0" }}>
-                <span>남는 몫</span>
+                <span>공헌이익 <span style={{ fontSize:11, color:"var(--text-sub)" }}>(= 남는 몫)</span></span>
                 <span style={{ fontFamily:"'DM Mono',monospace" }}>{fmt(remainAmt)}원 <span style={{ fontSize:11, color:"var(--text-sub)" }}>({remainPct.toFixed(1)}%)</span></span>
               </div>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", fontSize:13, color:"var(--text-sub)", padding:"5px 0", gap:8 }}>
@@ -1759,8 +1766,16 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
                 </span>
                 <span style={{ fontFamily:"'DM Mono',monospace", flexShrink:0 }}>−{fmt(rentAmt)}원</span>
               </div>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", fontSize:13, color:"var(--text-sub)", padding:"5px 0", gap:8 }}>
+                <span style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>− 기타 고정비 몫
+                  <input type="number" value={etcPctStr} onChange={e => setEtcPctStr(e.target.value)}
+                    style={{ ...S.input, width:54, padding:"4px 6px", fontSize:12, textAlign:"center", fontFamily:"'DM Mono',monospace" }} />
+                  <span style={{ fontSize:11 }}>% (수도광열·통신·보험·소모품·광고비 등)</span>
+                </span>
+                <span style={{ fontFamily:"'DM Mono',monospace", flexShrink:0 }}>−{fmt(etcAmt)}원</span>
+              </div>
               <div style={{ display:"flex", justifyContent:"space-between", fontSize:14, fontWeight:700, padding:"9px 0 0", marginTop:6, borderTop:"1px solid var(--border)", color: trueProfitAmt < 0 ? "var(--red)" : "var(--green)" }}>
-                <span>= 진짜 이익 (한 그릇)</span>
+                <span>= 진짜 이익 <span style={{ fontSize:11, fontWeight:400 }}>(이 메뉴 1건 팔 때)</span></span>
                 <span style={{ fontFamily:"'DM Mono',monospace" }}>{trueProfitAmt < 0 ? "−" : ""}{fmt(Math.abs(trueProfitAmt))}원 <span style={{ fontSize:11 }}>({trueProfitPct.toFixed(1)}%)</span></span>
               </div>
               {trueProfitAmt < 0 && (
@@ -1769,7 +1784,7 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
                 </div>
               )}
               <div style={{ fontSize:11, color:"var(--text-sub)", marginTop:10, lineHeight:1.6 }}>
-                ※ 인건비·임대료는 고정비라 매출이 오를수록 매출 대비 비중이 내려갑니다. 배달전문 고매출 매장은 둘이 합쳐 10%대도 흔합니다. 우리 매장 비율로 바꿔 넣으세요 — 이 매장 값으로 기억해둡니다.
+                ※ 고정비는 원래 &lsquo;건당 얼마&rsquo;가 아니라 매달 나가는 총액입니다. 여기서는 매출 대비 비율로 나눠 넣어 어림잡는 방식이라, 매출이 오를수록 이 비율은 내려갑니다(배달전문 고매출 매장은 셋 합쳐 15%대도 흔합니다). 우리 매장 비율로 바꿔 넣으세요 — 이 매장 값으로 기억해둡니다. 월 단위 정밀 판단은 배달 손익 진단기에서 하세요.
               </div>
             </div>
             {remainPct < 30 && (
