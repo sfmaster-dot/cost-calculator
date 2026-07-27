@@ -1373,6 +1373,7 @@ function ReversePanel({ menus, onApplyPrice }: { menus: Menu[]; onApplyPrice?: (
   const [deliveryCost, setDeliveryCost] = useState(3400); // 1등급 점주 부담 배달비
   const [packCost, setPackCost] = useState(500);      // 기본 500원
   const [simPrice, setSimPrice] = useState(0);        // 시뮬레이션 판매가 (0이면 최소 판매가 기준)
+  const [targetRemain, setTargetRemain] = useState(35); // 배달 기준 목표 남는 몫(%)
   const [applying, setApplying] = useState(false);
 
   // 현재 선택된 메뉴와 저장돼 있는 판매가
@@ -1423,6 +1424,17 @@ function ReversePanel({ menus, onApplyPrice }: { menus: Menu[]; onApplyPrice?: (
   function stepPrice(delta: number) {
     const base = simPrice > 0 ? simPrice : (currentPrice > 0 ? currentPrice : minPrice);
     setSimPrice(Math.max(0, base + delta));
+  }
+
+  // 배달 기준 역산 — 목표 남는 몫(%)을 확보하는 판매가를 거꾸로 계산
+  // P = (식재료 + 배달비×1.1 + 포장재) ÷ (1 − 수수료율×1.1 − 목표몫), 500원 단위 올림
+  const remainDenom = 100 - (delivFee + payFee) * 1.1 - targetRemain;
+  const remainSolvable = cost > 0 && targetRemain > 0 && remainDenom > 0;
+  function solveDeliveryPrice() {
+    if (!remainSolvable) return;
+    const fixed = cost + deliveryCost * 1.1 + packCost;  // 건당 고정 비용
+    const raw = fixed * 100 / remainDenom;
+    setSimPrice(Math.ceil(raw / 500) * 500);
   }
 
   async function applyPrice() {
@@ -1524,6 +1536,25 @@ function ReversePanel({ menus, onApplyPrice }: { menus: Menu[]; onApplyPrice?: (
                     : <span style={{ fontSize:12, color:"var(--text-sub)" }}>아직 판매가 미설정 메뉴</span>
                 )}
               </div>
+
+              {/* 배달 기준 역산 — 목표 남는 몫으로 판매가 거꾸로 찾기 */}
+              <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap", padding:"10px 12px", marginBottom:12, background:"rgba(245,200,66,0.06)", border:"1px dashed rgba(245,200,66,0.3)", borderRadius:8 }}>
+                <span style={{ fontSize:12, color:"var(--text)" }}>🛵 배달로 팔 때 남는 몫</span>
+                <div style={{ position:"relative", width:74, flexShrink:0 }}>
+                  <input type="number" value={targetRemain||""} onChange={e => setTargetRemain(parseFloat(e.target.value)||0)}
+                    style={{ ...S.input, fontFamily:"'DM Mono',monospace", fontSize:14, textAlign:"center", padding:"7px 22px 7px 8px" }} />
+                  <span style={{ position:"absolute", right:8, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>%</span>
+                </div>
+                <span style={{ fontSize:12, color:"var(--text)" }}>확보하려면?</span>
+                <button onClick={solveDeliveryPrice} disabled={!remainSolvable}
+                  style={{ padding:"9px 14px", border:"1px solid rgba(245,200,66,0.45)", borderRadius:8, background: remainSolvable ? "rgba(245,200,66,0.12)" : "transparent", color: remainSolvable ? "var(--accent)" : "var(--text-sub)", fontFamily:"'Noto Sans KR',sans-serif", fontSize:12, fontWeight:700, cursor: remainSolvable ? "pointer" : "default", flexShrink:0 }}>
+                  🎯 판매가 자동 찾기
+                </button>
+                {!remainSolvable && targetRemain > 0 && cost > 0 && (
+                  <span style={{ fontSize:11, color:"var(--red)" }}>수수료 비율 + 목표 몫이 100%를 넘습니다</span>
+                )}
+              </div>
+
               <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
                 <button onClick={() => stepPrice(-500)} style={stepBtnStyle}>−500</button>
                 <div style={{ position:"relative", flex:1, minWidth:130 }}>
