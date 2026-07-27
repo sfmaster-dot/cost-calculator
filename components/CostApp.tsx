@@ -1509,6 +1509,8 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
   const [laborPctStr, setLaborPctStr] = useState("20");
   const [rentPctStr, setRentPctStr] = useState("5");
   const [etcPctStr, setEtcPctStr] = useState("5");
+  const [monthlyFixedStr, setMonthlyFixedStr] = useState("");   // 월 고정비 총액(원)
+  const [monthlyOrdersStr, setMonthlyOrdersStr] = useState(""); // 월 주문수(건)
 
   // 매장별 인건비·임대료 비율 기억 (localStorage)
   // 로드가 상태에 반영되기 전에 저장 이펙트가 기본값을 덮어쓰는 레이스 방지용 플래그
@@ -1523,18 +1525,22 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
         setLaborPctStr(p.labor != null ? String(p.labor) : "20");
         setRentPctStr(p.rent != null ? String(p.rent) : "5");
         setEtcPctStr(p.etc != null ? String(p.etc) : "5");
+        setMonthlyFixedStr(p.mFixed != null ? String(p.mFixed) : "");
+        setMonthlyOrdersStr(p.mOrders != null ? String(p.mOrders) : "");
       } else {
         setLaborPctStr("20");
         setRentPctStr("5");
         setEtcPctStr("5");
+        setMonthlyFixedStr("");
+        setMonthlyOrdersStr("");
       }
     } catch {}
   }, [storeId]);
   useEffect(() => {
     if (skipNextFixedPctSave.current) { skipNextFixedPctSave.current = false; return; }
     if (!storeId || typeof window === "undefined") return;
-    try { localStorage.setItem(`dgm-cost-fixed-pct-${storeId}`, JSON.stringify({ labor: laborPctStr, rent: rentPctStr, etc: etcPctStr })); } catch {}
-  }, [storeId, laborPctStr, rentPctStr, etcPctStr]);
+    try { localStorage.setItem(`dgm-cost-fixed-pct-${storeId}`, JSON.stringify({ labor: laborPctStr, rent: rentPctStr, etc: etcPctStr, mFixed: monthlyFixedStr, mOrders: monthlyOrdersStr })); } catch {}
+  }, [storeId, laborPctStr, rentPctStr, etcPctStr, monthlyFixedStr, monthlyOrdersStr]);
 
   const laborPct = parseFloat(laborPctStr) || 0;
   const rentPct = parseFloat(rentPctStr) || 0;
@@ -1546,6 +1552,14 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
   const fixedPctTotal = laborPct + rentPct + etcPct;
   const trueProfitAmt = remainAmt - laborAmt - rentAmt - etcAmt;
   const trueProfitPct = remainPct - fixedPctTotal;
+
+  // 월 손익분기 주문수 — 월 고정비 총액 ÷ 건당 공헌이익 (일환산 30일 기준)
+  const monthlyFixed = parseFloat(monthlyFixedStr) || 0;
+  const monthlyOrders = parseFloat(monthlyOrdersStr) || 0;
+  const beOrders = remainAmt > 0 && monthlyFixed > 0 ? Math.ceil(monthlyFixed / remainAmt) : 0;
+  const monthlyCM = remainAmt * monthlyOrders;         // 월 공헌이익
+  const monthlyProfit = monthlyCM - monthlyFixed;      // 월 순이익
+  const orderGap = monthlyOrders - beOrders;
 
   async function applyPrice() {
     if (!selectedMenuId || !onApplyPrice || simPrice <= 0 || applying) return;
@@ -1784,7 +1798,7 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
                 </div>
               )}
               <div style={{ fontSize:11, color:"var(--text-sub)", marginTop:10, lineHeight:1.6 }}>
-                ※ 고정비는 원래 &lsquo;건당 얼마&rsquo;가 아니라 매달 나가는 총액입니다. 여기서는 매출 대비 비율로 나눠 넣어 어림잡는 방식이라, 매출이 오를수록 이 비율은 내려갑니다(배달전문 고매출 매장은 셋 합쳐 15%대도 흔합니다). 우리 매장 비율로 바꿔 넣으세요 — 이 매장 값으로 기억해둡니다. 월 단위 정밀 판단은 배달 손익 진단기에서 하세요.
+                ※ 고정비는 원래 &lsquo;건당 얼마&rsquo;가 아니라 매달 나가는 총액입니다. 여기서는 매출 대비 비율로 나눠 넣어 어림잡는 방식이라, 매출이 오를수록 이 비율은 내려갑니다(배달전문 고매출 매장은 셋 합쳐 15%대도 흔합니다). 우리 매장 비율로 바꿔 넣으세요 — 이 매장 값으로 기억해둡니다. 비율로 어림잡는 게 답답하면, 바로 아래에서 월 고정비 총액으로 정확하게 검산하세요.
               </div>
             </div>
             {remainPct < 30 && (
@@ -1792,6 +1806,62 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
                 ⚠️ 남는 몫이 30% 미만입니다. 인건비·임대료까지 빼면 적자 위험이 큽니다. 판매가 인상 또는 원가 절감을 검토하세요.
               </div>
             )}
+
+            {/* 월 손익분기 주문수 */}
+            <div style={{ marginTop:14, background:"var(--surface)", border:"1px solid var(--border)", borderRadius:10, padding:"16px 18px" }}>
+              <div style={{ fontSize:12, fontWeight:700, color:"var(--text-sub)", letterSpacing:"0.05em", textTransform:"uppercase", marginBottom:4 }}>📅 월 손익분기 — 몇 건 팔아야 본전인가</div>
+              <div style={{ fontSize:11, color:"var(--text-sub)", marginBottom:12, lineHeight:1.6 }}>건당 공헌이익 <strong style={{ color:"var(--text)", fontFamily:"'DM Mono',monospace" }}>{fmt(remainAmt)}원</strong>이 매달 나가는 고정비를 메우는 돈입니다. 월 고정비 총액을 넣으면 몇 건 팔아야 본전인지 나옵니다.</div>
+              <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:14 }}>
+                <div style={{ flex:1, minWidth:150 }}>
+                  <div style={{ fontSize:11, color:"var(--text-sub)", marginBottom:5 }}>월 고정비 총액 (원)</div>
+                  <input type="number" placeholder="5000000" value={monthlyFixedStr} onChange={e => setMonthlyFixedStr(e.target.value)}
+                    style={{ ...S.input, fontFamily:"'DM Mono',monospace", fontSize:14 }} />
+                  <div style={{ fontSize:10, color:"var(--text-sub)", marginTop:4 }}>인건비+임차료+수도광열·통신·보험·광고비 등</div>
+                </div>
+                <div style={{ flex:1, minWidth:150 }}>
+                  <div style={{ fontSize:11, color:"var(--text-sub)", marginBottom:5 }}>월 주문수 (건) <span style={{ fontSize:10 }}>· 선택</span></div>
+                  <input type="number" placeholder="900" value={monthlyOrdersStr} onChange={e => setMonthlyOrdersStr(e.target.value)}
+                    style={{ ...S.input, fontFamily:"'DM Mono',monospace", fontSize:14 }} />
+                  <div style={{ fontSize:10, color:"var(--text-sub)", marginTop:4 }}>넣으면 월 순이익까지 검산합니다</div>
+                </div>
+              </div>
+
+              {beOrders > 0 ? (
+                <>
+                  <div style={{ padding:"14px 16px", borderRadius:8, background:"rgba(245,200,66,0.06)", border:"1px solid rgba(245,200,66,0.25)", textAlign:"center" }}>
+                    <div style={{ fontSize:11, color:"var(--text-sub)", marginBottom:4 }}>이 메뉴만 판다고 보면, 손익분기 주문수는</div>
+                    <div style={{ fontFamily:"'DM Mono',monospace", fontSize:26, color:"var(--accent)", fontWeight:700 }}>월 {fmt(beOrders)}건</div>
+                    <div style={{ fontSize:12, color:"var(--text-sub)", marginTop:4 }}>하루 약 {(beOrders/30).toFixed(1)}건 · 30일 기준</div>
+                  </div>
+                  {monthlyOrders > 0 && (
+                    <div style={{ marginTop:12 }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", fontSize:13, color:"var(--text-sub)", padding:"5px 0" }}>
+                        <span>월 공헌이익 <span style={{ fontSize:11 }}>({fmt(remainAmt)}원 × {fmt(monthlyOrders)}건)</span></span>
+                        <span style={{ fontFamily:"'DM Mono',monospace" }}>{fmt(monthlyCM)}원</span>
+                      </div>
+                      <div style={{ display:"flex", justifyContent:"space-between", fontSize:13, color:"var(--text-sub)", padding:"5px 0" }}>
+                        <span>− 월 고정비</span>
+                        <span style={{ fontFamily:"'DM Mono',monospace" }}>−{fmt(monthlyFixed)}원</span>
+                      </div>
+                      <div style={{ display:"flex", justifyContent:"space-between", fontSize:14, fontWeight:700, padding:"9px 0 0", marginTop:6, borderTop:"1px solid var(--border)", color: monthlyProfit < 0 ? "var(--red)" : "var(--green)" }}>
+                        <span>= 월 순이익</span>
+                        <span style={{ fontFamily:"'DM Mono',monospace" }}>{monthlyProfit < 0 ? "−" : ""}{fmt(Math.abs(monthlyProfit))}원</span>
+                      </div>
+                      <div style={{ fontSize:12, marginTop:10, color: orderGap < 0 ? "var(--red)" : "var(--green)" }}>
+                        {orderGap < 0
+                          ? `🚨 손익분기까지 월 ${fmt(Math.abs(orderGap))}건 부족합니다 (하루 ${(Math.abs(orderGap)/30).toFixed(1)}건)`
+                          : `✅ 손익분기를 월 ${fmt(orderGap)}건 넘겼습니다 (하루 ${(orderGap/30).toFixed(1)}건 여유)`}
+                      </div>
+                    </div>
+                  )}
+                  <div style={{ fontSize:11, color:"var(--text-sub)", marginTop:12, lineHeight:1.6 }}>
+                    ※ 이 메뉴 하나만 판다고 가정한 계산입니다. 메뉴가 섞여 팔리면 메뉴별 공헌이익의 평균으로 봐야 하니, 실제 손익분기는 이보다 높거나 낮을 수 있습니다.
+                  </div>
+                </>
+              ) : (
+                <div style={{ fontSize:12, color:"var(--text-sub)" }}>월 고정비 총액을 넣으면 손익분기 주문수가 계산됩니다.</div>
+              )}
+            </div>
 
             {/* 시뮬레이션 가격을 메뉴 판매가에 반영 */}
             {selectedMenuId && onApplyPrice && simPrice > 0 && (
