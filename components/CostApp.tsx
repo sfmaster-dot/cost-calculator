@@ -1510,7 +1510,10 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
   const [rentPctStr, setRentPctStr] = useState("5");
 
   // 매장별 인건비·임대료 비율 기억 (localStorage)
+  // 로드가 상태에 반영되기 전에 저장 이펙트가 기본값을 덮어쓰는 레이스 방지용 플래그
+  const skipNextFixedPctSave = useRef(true);
   useEffect(() => {
+    skipNextFixedPctSave.current = true; // 매장 전환 직후 1회 저장 건너뛰기
     if (!storeId || typeof window === "undefined") return;
     try {
       const saved = localStorage.getItem(`dgm-cost-fixed-pct-${storeId}`);
@@ -1518,10 +1521,14 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
         const p = JSON.parse(saved);
         if (p.labor != null) setLaborPctStr(String(p.labor));
         if (p.rent != null) setRentPctStr(String(p.rent));
+      } else {
+        setLaborPctStr("20");
+        setRentPctStr("5");
       }
     } catch {}
   }, [storeId]);
   useEffect(() => {
+    if (skipNextFixedPctSave.current) { skipNextFixedPctSave.current = false; return; }
     if (!storeId || typeof window === "undefined") return;
     try { localStorage.setItem(`dgm-cost-fixed-pct-${storeId}`, JSON.stringify({ labor: laborPctStr, rent: rentPctStr })); } catch {}
   }, [storeId, laborPctStr, rentPctStr]);
