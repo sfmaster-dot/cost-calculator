@@ -498,7 +498,7 @@ export default function CostApp() {
 
       {tab === "calc" && <CalcPanel menus={menus} onChange={handleMenuChange} onAdd={handleAddMenu} onDelete={handleDeleteMenu} onDuplicate={handleDuplicateMenu} onMove={handleMoveMenu} uid={user.uid} storeId={selectedStore.id} />}
       {tab === "summary" && <SummaryPanel menus={menus} />}
-      {tab === "reverse" && <ReversePanel menus={menus} onApplyPrice={handleApplyPrice} />}
+      {tab === "reverse" && <ReversePanel menus={menus} storeId={selectedStore.id} onApplyPrice={handleApplyPrice} />}
 
       <div style={{
         position:"fixed", bottom:32, left:"50%",
@@ -1364,7 +1364,7 @@ function SummaryPanel({ menus }: { menus: Menu[] }) {
 }
 
 // ── 판매가 역산 패널 ───────────────────────────────────────────────────────────
-function ReversePanel({ menus, onApplyPrice }: { menus: Menu[]; onApplyPrice?: (menuId: string, price: number) => Promise<void> }) {
+function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId?: string; onApplyPrice?: (menuId: string, price: number) => Promise<void> }) {
   const [cost, setCost] = useState(0);
   const [selectedMenuId, setSelectedMenuId] = useState("");
   const [targetRate, setTargetRate] = useState(0);    // placeholder 35
@@ -1373,7 +1373,7 @@ function ReversePanel({ menus, onApplyPrice }: { menus: Menu[]; onApplyPrice?: (
   const [deliveryCost, setDeliveryCost] = useState(3400); // 1등급 점주 부담 배달비
   const [packCost, setPackCost] = useState(500);      // 기본 500원
   const [simPrice, setSimPrice] = useState(0);        // 시뮬레이션 판매가 (0이면 최소 판매가 기준)
-  const [targetRemain, setTargetRemain] = useState(35); // 배달 기준 목표 남는 몫(%)
+  const [targetRemainStr, setTargetRemainStr] = useState("35"); // 배달 기준 목표 남는 몫(%) — 0 입력 허용 위해 문자열
   const [applying, setApplying] = useState(false);
 
   // 현재 선택된 메뉴와 저장돼 있는 판매가
@@ -1428,14 +1428,54 @@ function ReversePanel({ menus, onApplyPrice }: { menus: Menu[]; onApplyPrice?: (
 
   // 배달 기준 역산 — 목표 남는 몫(%)을 확보하는 판매가를 거꾸로 계산
   // P = (식재료 + 배달비×1.1 + 포장재) ÷ (1 − 수수료율×1.1 − 목표몫), 500원 단위 올림
-  const remainDenom = 100 - (delivFee + payFee) * 1.1 - targetRemain;
-  const remainSolvable = cost > 0 && targetRemain > 0 && remainDenom > 0;
-  function solveDeliveryPrice() {
-    if (!remainSolvable) return;
+  const targetRemain = parseFloat(targetRemainStr);
+  const validRemain = !Number.isNaN(targetRemain) && targetRemain >= 0;
+  const remainDenom = 100 - (delivFee + payFee) * 1.1 - (validRemain ? targetRemain : 0);
+  const remainSolvable = cost > 0 && validRemain && remainDenom > 0;
+  function solveWithRemain(r: number) {
+    const denom = 100 - (delivFee + payFee) * 1.1 - r;
+    if (cost <= 0 || denom <= 0) return;
     const fixed = cost + deliveryCost * 1.1 + packCost;  // 건당 고정 비용
-    const raw = fixed * 100 / remainDenom;
-    setSimPrice(Math.ceil(raw / 500) * 500);
+    setSimPrice(Math.ceil(fixed * 100 / denom / 500) * 500);
   }
+  function solveDeliveryPrice() {
+    if (remainSolvable) solveWithRemain(targetRemain);
+  }
+
+  // 손익분기 판매가 (남는 몫 0%) — 식재료+배달경비만 겨우 건지는 데드라인, 100원 단위 올림
+  const beDenom = 100 - (delivFee + payFee) * 1.1;
+  const breakEvenPrice = cost > 0 && beDenom > 0
+    ? Math.ceil((cost + deliveryCost * 1.1 + packCost) * 100 / beDenom / 100) * 100
+    : 0;
+
+  // 남는 몫 해부 — 인건비·임대료 비율은 매장마다 달라서 직접 입력 (기본 20%·5%, 매장별 기억)
+  const [laborPctStr, setLaborPctStr] = useState("20");
+  const [rentPctStr, setRentPctStr] = useState("5");
+
+  // 매장별 인건비·임대료 비율 기억 (localStorage)
+  useEffect(() => {
+    if (!storeId || typeof window === "undefined") return;
+    try {
+      const saved = localStorage.getItem(`dgm-cost-fixed-pct-${storeId}`);
+      if (saved) {
+        const p = JSON.parse(saved);
+        if (p.labor != null) setLaborPctStr(String(p.labor));
+        if (p.rent != null) setRentPctStr(String(p.rent));
+      }
+    } catch {}
+  }, [storeId]);
+  useEffect(() => {
+    if (!storeId || typeof window === "undefined") return;
+    try { localStorage.setItem(`dgm-cost-fixed-pct-${storeId}`, JSON.stringify({ labor: laborPctStr, rent: rentPctStr })); } catch {}
+  }, [storeId, laborPctStr, rentPctStr]);
+
+  const laborPct = parseFloat(laborPctStr) || 0;
+  const rentPct = parseFloat(rentPctStr) || 0;
+  const remainAmt = effectivePrice * remainPct / 100;
+  const laborAmt = effectivePrice * laborPct / 100;
+  const rentAmt = effectivePrice * rentPct / 100;
+  const trueProfitAmt = remainAmt - laborAmt - rentAmt;
+  const trueProfitPct = remainPct - laborPct - rentPct;
 
   async function applyPrice() {
     if (!selectedMenuId || !onApplyPrice || simPrice <= 0 || applying) return;
@@ -1541,7 +1581,7 @@ function ReversePanel({ menus, onApplyPrice }: { menus: Menu[]; onApplyPrice?: (
               <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap", padding:"10px 12px", marginBottom:12, background:"rgba(245,200,66,0.06)", border:"1px dashed rgba(245,200,66,0.3)", borderRadius:8 }}>
                 <span style={{ fontSize:12, color:"var(--text)" }}>🛵 배달로 팔 때 남는 몫</span>
                 <div style={{ position:"relative", width:74, flexShrink:0 }}>
-                  <input type="number" value={targetRemain||""} onChange={e => setTargetRemain(parseFloat(e.target.value)||0)}
+                  <input type="number" value={targetRemainStr} onChange={e => setTargetRemainStr(e.target.value)}
                     style={{ ...S.input, fontFamily:"'DM Mono',monospace", fontSize:14, textAlign:"center", padding:"7px 22px 7px 8px" }} />
                   <span style={{ position:"absolute", right:8, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>%</span>
                 </div>
@@ -1550,8 +1590,22 @@ function ReversePanel({ menus, onApplyPrice }: { menus: Menu[]; onApplyPrice?: (
                   style={{ padding:"9px 14px", border:"1px solid rgba(245,200,66,0.45)", borderRadius:8, background: remainSolvable ? "rgba(245,200,66,0.12)" : "transparent", color: remainSolvable ? "var(--accent)" : "var(--text-sub)", fontFamily:"'Noto Sans KR',sans-serif", fontSize:12, fontWeight:700, cursor: remainSolvable ? "pointer" : "default", flexShrink:0 }}>
                   🎯 판매가 자동 찾기
                 </button>
-                {!remainSolvable && targetRemain > 0 && cost > 0 && (
+                {!remainSolvable && validRemain && cost > 0 && (
                   <span style={{ fontSize:11, color:"var(--red)" }}>수수료 비율 + 목표 몫이 100%를 넘습니다</span>
+                )}
+                <div style={{ display:"flex", gap:6, alignItems:"center", flexWrap:"wrap", width:"100%" }}>
+                  <span style={{ fontSize:11, color:"var(--text-sub)" }}>빠른 선택</span>
+                  {([["🩹 생존", 30], ["👍 권장", 35], ["😊 여유", 40]] as [string, number][]).map(([label, v]) => (
+                    <button key={v} onClick={() => { setTargetRemainStr(String(v)); solveWithRemain(v); }}
+                      style={{ padding:"6px 10px", border:"1px solid var(--border)", borderRadius:99, background: targetRemain === v ? "var(--surface2)" : "transparent", color:"var(--text)", fontFamily:"'Noto Sans KR',sans-serif", fontSize:11, cursor:"pointer" }}>
+                      {label} {v}%
+                    </button>
+                  ))}
+                </div>
+                {breakEvenPrice > 0 && (
+                  <div style={{ fontSize:11, color:"var(--red)", width:"100%", lineHeight:1.6 }}>
+                    🚨 손익분기 판매가 <strong style={{ fontFamily:"'DM Mono',monospace", fontSize:13 }}>{fmt(breakEvenPrice)}원</strong> — 이 밑으로 팔면 식재료·배달경비도 못 건지는 즉시 적자입니다
+                  </div>
                 )}
               </div>
 
@@ -1615,6 +1669,43 @@ function ReversePanel({ menus, onApplyPrice }: { menus: Menu[]; onApplyPrice?: (
               <div style={{ background:"var(--surface)", border:`1px solid ${remainPct < 30 ? "rgba(255,92,92,0.4)" : "rgba(61,214,140,0.3)"}`, borderRadius:10, padding:"14px 16px", textAlign:"center" }}>
                 <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:4 }}>남는 몫 (인건비·임대료·이익)</div>
                 <div style={{ fontFamily:"'DM Mono',monospace", fontSize:24, color: remainPct < 30 ? "var(--red)" : "var(--green)" }}>{remainPct.toFixed(1)}%</div>
+              </div>
+            </div>
+
+            {/* 남는 몫 해부 — 벤치마크 기준 진짜 이익 */}
+            <div style={{ marginTop:14, background:"var(--surface)", border:"1px solid var(--border)", borderRadius:10, padding:"16px 18px" }}>
+              <div style={{ fontSize:12, fontWeight:700, color:"var(--text-sub)", letterSpacing:"0.05em", textTransform:"uppercase", marginBottom:12 }}>🔍 남는 몫 해부 — 이게 다 내 돈이 아닙니다</div>
+              <div style={{ display:"flex", justifyContent:"space-between", fontSize:13, color:"var(--text)", padding:"5px 0" }}>
+                <span>남는 몫</span>
+                <span style={{ fontFamily:"'DM Mono',monospace" }}>{fmt(remainAmt)}원 <span style={{ fontSize:11, color:"var(--text-sub)" }}>({remainPct.toFixed(1)}%)</span></span>
+              </div>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", fontSize:13, color:"var(--text-sub)", padding:"5px 0", gap:8 }}>
+                <span style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>− 인건비 몫
+                  <input type="number" value={laborPctStr} onChange={e => setLaborPctStr(e.target.value)}
+                    style={{ ...S.input, width:54, padding:"4px 6px", fontSize:12, textAlign:"center", fontFamily:"'DM Mono',monospace" }} />
+                  <span style={{ fontSize:11 }}>% (매출 대비)</span>
+                </span>
+                <span style={{ fontFamily:"'DM Mono',monospace", flexShrink:0 }}>−{fmt(laborAmt)}원</span>
+              </div>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", fontSize:13, color:"var(--text-sub)", padding:"5px 0", gap:8 }}>
+                <span style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>− 임대료 몫
+                  <input type="number" value={rentPctStr} onChange={e => setRentPctStr(e.target.value)}
+                    style={{ ...S.input, width:54, padding:"4px 6px", fontSize:12, textAlign:"center", fontFamily:"'DM Mono',monospace" }} />
+                  <span style={{ fontSize:11 }}>% (매출 대비)</span>
+                </span>
+                <span style={{ fontFamily:"'DM Mono',monospace", flexShrink:0 }}>−{fmt(rentAmt)}원</span>
+              </div>
+              <div style={{ display:"flex", justifyContent:"space-between", fontSize:14, fontWeight:700, padding:"9px 0 0", marginTop:6, borderTop:"1px solid var(--border)", color: trueProfitAmt < 0 ? "var(--red)" : "var(--green)" }}>
+                <span>= 진짜 이익 (한 그릇)</span>
+                <span style={{ fontFamily:"'DM Mono',monospace" }}>{trueProfitAmt < 0 ? "−" : ""}{fmt(Math.abs(trueProfitAmt))}원 <span style={{ fontSize:11 }}>({trueProfitPct.toFixed(1)}%)</span></span>
+              </div>
+              {trueProfitAmt < 0 && (
+                <div style={{ fontSize:12, color:"var(--red)", marginTop:10 }}>
+                  🚨 이 가격이면 인건비·임대료까지 계산했을 때 팔수록 적자 구조입니다.
+                </div>
+              )}
+              <div style={{ fontSize:11, color:"var(--text-sub)", marginTop:10, lineHeight:1.6 }}>
+                ※ 인건비·임대료는 고정비라 매출이 오를수록 매출 대비 비중이 내려갑니다. 배달전문 고매출 매장은 둘이 합쳐 10%대도 흔합니다. 우리 매장 비율로 바꿔 넣으세요 — 이 매장 값으로 기억해둡니다.
               </div>
             </div>
             {remainPct < 30 && (
