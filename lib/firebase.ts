@@ -20,6 +20,7 @@ import {
   serverTimestamp,
   query,
   orderBy,
+  deleteField,
 } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -132,12 +133,28 @@ export async function saveMenu(uid: string, storeId: string, menu: Menu) {
   }, 0);
   const costRate = menu.price > 0 ? (cost / menu.price) * 100 : 0;
   if (id) {
-    return setDoc(doc(db, "users", uid, "stores", storeId, "menus", id), {
+    await setDoc(doc(db, "users", uid, "stores", storeId, "menus", id), {
       ...data,
       cost,
       costRate,
       updatedAt: serverTimestamp(),
     });
+    // 원가율 추이 스냅샷 (하루 1개 — 같은 날은 최신값으로 갱신)
+    if (cost > 0) {
+      const today = new Date().toISOString().slice(0, 10);
+      await setDoc(doc(db, "users", uid, "stores", storeId, "menus", id, "history", today), {
+        date: today,
+        cost: Math.round(cost),
+        costRate: Math.round(costRate * 10) / 10,
+        price: menu.price || 0,
+        ingredients: (menu.ingredients || []).filter(i => i.name).map(i => ({
+          name: i.name,
+          purchaseQty: i.purchaseQty || 0,
+          purchasePrice: i.purchasePrice || 0,
+        })),
+      });
+    }
+    return;
   } else {
     return addDoc(collection(db, "users", uid, "stores", storeId, "menus"), {
       ...data,
@@ -151,6 +168,72 @@ export async function saveMenu(uid: string, storeId: string, menu: Menu) {
 
 export async function deleteMenu(uid: string, storeId: string, menuId: string) {
   return deleteDoc(doc(db, "users", uid, "stores", storeId, "menus", menuId));
+}
+
+// ── 원가율 추이 ──
+export interface MenuHistoryEntry {
+  date: string;
+  cost: number;
+  costRate: number;
+  price: number;
+  ingredients?: { name: string; purchaseQty: number; purchasePrice: number }[];
+}
+
+export async function getMenuHistory(uid: string, storeId: string, menuId: string): Promise<MenuHistoryEntry[]> {
+  const q = query(
+    collection(db, "users", uid, "stores", storeId, "menus", menuId, "history"),
+    orderBy("date", "asc")
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => d.data() as MenuHistoryEntry);
+}
+
+// ── 관리자: 이용권 회원 관리 ──
+export interface ToolMember {
+  email: string;
+  expires?: string;
+  plan?: string;
+  banned?: boolean;
+  updatedAt?: unknown;
+}
+
+export async function adminGetMembers(): Promise<ToolMember[]> {
+  const snap = await getDocs(collection(db, "toolAccess"));
+  return snap.docs
+    .map(d => ({ email: d.id, ...d.data() } as ToolMember))
+    .sort((a, b) => (b.expires || "").localeCompare(a.expires || ""));
+}
+
+export async function adminSetBanned(email: string, banned: boolean) {
+  if (banned) {
+    return setDoc(doc(db, "toolAccess", email.toLowerCase()), { banned: true }, { merge: true });
+  } else {
+    return setDoc(doc(db, "toolAccess", email.toLowerCase()), { banned: deleteField() }, { merge: true });
+  }
+}
+
+export async function adminExtend(email: string, days: number) {
+  const lower = email.toLowerCase();
+  const today = new Date().toISOString().slice(0, 10);
+  const snap = await getDoc(doc(db, "toolAccess", lower));
+  let base = today;
+  if (snap.exists()) {
+    const cur = snap.data().expires as string;
+    if (cur && cur > today) base = cur;
+  }
+  const d = new Date(base);
+  d.setDate(d.getDate() + days);
+  const expires = d.toISOString().slice(0, 10);
+  await setDoc(doc(db, "toolAccess", lower), {
+    expires,
+    plan: String(days),
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+  return expires;
+}
+
+export async function adminDeleteMember(email: string) {
+  return deleteDoc(doc(db, "toolAccess", email.toLowerCase()));
 }
 
 export async function copyMenusToStore(

@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   loginWithGoogle, logout, onAuthChange,
   getStores, addStore, updateStore, deleteStore,
-  getMenus, saveMenu, deleteMenu, copyMenusToStore, saveMenuOrder, syncCostRateToProfit,
-  type Store, type Menu, type Ingredient,
+  getMenus, saveMenu, deleteMenu, copyMenusToStore, saveMenuOrder,
+  getMenuHistory, adminGetMembers, adminSetBanned, adminExtend, adminDeleteMember, syncCostRateToProfit,
+  type Store, type Menu, type Ingredient, type MenuHistoryEntry, type ToolMember,
 } from "@/lib/firebase";
 import type { User } from "firebase/auth";
-import { checkAccess, redeemCode, PURCHASE_LINKS, type AccessInfo } from "@/lib/access";
+import { checkAccess, redeemCode, PURCHASE_LINKS, ADMIN_EMAILS, type AccessInfo } from "@/lib/access";
 
 // ── 상수 ──────────────────────────────────────────────────────────────────────
 const STORE_COLORS = ["#f5c842","#ff6b35","#3dd68c","#60a5fa","#c084fc","#f472b6","#fb923c","#34d399"];
@@ -156,6 +157,7 @@ export default function CostApp() {
   const [menus, setMenus] = useState<Menu[]>([]);
   const [tab, setTab] = useState<"calc"|"summary"|"reverse">("calc");
   const [editingStoreName, setEditingStoreName] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
   const [storeNameDraft, setStoreNameDraft] = useState("");
   const { msg: toastMsg, show: toastShow, toast } = useToast();
 
@@ -417,9 +419,13 @@ export default function CostApp() {
     />
   );
 
+  if (showAdmin) return <AdminPanel onBack={() => setShowAdmin(false)} />;
+
   if (!selectedStore) return (
     <StoreScreen
       user={user} stores={stores}
+      isAdmin={ADMIN_EMAILS.includes((user.email || "").toLowerCase())}
+      onAdmin={() => setShowAdmin(true)}
       onSelect={setSelectedStore} onDelete={handleDeleteStore}
       addingStore={addingStore} setAddingStore={setAddingStore}
       newStoreName={newStoreName} setNewStoreName={setNewStoreName}
@@ -479,7 +485,7 @@ export default function CostApp() {
         ))}
       </div>
 
-      {tab === "calc" && <CalcPanel menus={menus} onChange={handleMenuChange} onAdd={handleAddMenu} onDelete={handleDeleteMenu} onDuplicate={handleDuplicateMenu} onMove={handleMoveMenu} />}
+      {tab === "calc" && <CalcPanel menus={menus} onChange={handleMenuChange} onAdd={handleAddMenu} onDelete={handleDeleteMenu} onDuplicate={handleDuplicateMenu} onMove={handleMoveMenu} uid={user.uid} storeId={selectedStore.id} />}
       {tab === "summary" && <SummaryPanel menus={menus} />}
       {tab === "reverse" && <ReversePanel menus={menus} />}
 
@@ -662,8 +668,129 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
   );
 }
 
+// ── 관리자: 이용권 회원 관리 ──────────────────────────────────────────────────
+function AdminPanel({ onBack }: { onBack: () => void }) {
+  const [members, setMembers] = useState<ToolMember[] | null>(null);
+  const [newEmail, setNewEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const { msg: toastMsg, show: toastShow, toast } = useToast();
+  const today = new Date().toISOString().slice(0, 10);
+
+  async function load() {
+    try {
+      const m = await adminGetMembers();
+      setMembers(m);
+    } catch {
+      setMembers([]);
+      toast("⚠️ 명단을 불러올 수 없습니다. Firestore 규칙을 확인하세요");
+    }
+  }
+  useEffect(() => { load(); }, []);
+
+  function statusOf(m: ToolMember) {
+    if (m.banned) return { label: "🚫 차단", color: "var(--red)" };
+    if (!m.expires) return { label: "—", color: "var(--text-sub)" };
+    if (m.expires < today) return { label: "만료", color: "var(--text-sub)" };
+    return { label: "✅ 이용중", color: "var(--green)" };
+  }
+
+  async function act(fn: () => Promise<unknown>, msg: string) {
+    if (busy) return;
+    setBusy(true);
+    try { await fn(); toast(msg); await load(); }
+    catch { toast("⚠️ 처리 실패"); }
+    setBusy(false);
+  }
+
+  const active = (members||[]).filter(m => !m.banned && m.expires && m.expires >= today).length;
+  const expired = (members||[]).filter(m => !m.banned && m.expires && m.expires < today).length;
+  const bannedCount = (members||[]).filter(m => m.banned).length;
+
+  return (
+    <div style={{ maxWidth: 760, margin: "0 auto", padding: "40px 16px 80px", fontFamily:"'Noto Sans KR',sans-serif" }}>
+      <div style={{
+        position:"fixed", bottom:32, left:"50%",
+        transform:`translateX(-50%) translateY(${toastShow ? 0 : 80}px)`,
+        opacity: toastShow ? 1 : 0,
+        background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:10,
+        padding:"11px 20px", fontSize:13, zIndex:99, transition:"all 0.3s",
+        pointerEvents:"none", whiteSpace:"nowrap",
+      }}>{toastMsg}</div>
+      <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:24 }}>
+        <button onClick={onBack} style={{ ...S.btn(), padding:"7px 12px", fontSize:18 }}>←</button>
+        <div>
+          <div style={{ fontWeight:900, fontSize:20 }}>⚙️ 이용권 회원 관리</div>
+          <div style={{ fontSize:12, color:"var(--text-sub)" }}>코드 등록·차단·연장을 여기서 처리하세요</div>
+        </div>
+      </div>
+
+      {/* 통계 */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:10, marginBottom:20 }}>
+        {[
+          ["전체", members ? members.length : "—", "var(--text)"],
+          ["이용중", members ? active : "—", "var(--green)"],
+          ["만료", members ? expired : "—", "var(--text-sub)"],
+          ["차단", members ? bannedCount : "—", "var(--red)"],
+        ].map(([l, v, c]) => (
+          <div key={l as string} style={{ ...S.card, padding:"14px", textAlign:"center", marginBottom:0 }}>
+            <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:4 }}>{l}</div>
+            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:20, color:c as string }}>{v}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* 수동 등록 */}
+      <div style={{ ...S.card, marginBottom:20 }}>
+        <div style={{ fontSize:11, fontWeight:700, color:"var(--text-sub)", marginBottom:8 }}>수동 등록 (이메일 입력 후 기간 선택)</div>
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+          <input style={{ ...S.input, flex:1, minWidth:200 }} placeholder="이메일" value={newEmail} onChange={e => setNewEmail(e.target.value)} />
+          <button disabled={busy} onClick={() => { const em = newEmail.trim(); if (em) act(() => adminExtend(em, 30), "✅ 30일 등록/연장"); setNewEmail(""); }} style={{ ...S.btn("primary"), padding:"9px 14px", fontSize:12 }}>+30일</button>
+          <button disabled={busy} onClick={() => { const em = newEmail.trim(); if (em) act(() => adminExtend(em, 365), "✅ 365일 등록/연장"); setNewEmail(""); }} style={{ ...S.btn("primary"), padding:"9px 14px", fontSize:12 }}>+365일</button>
+        </div>
+      </div>
+
+      {/* 명단 */}
+      {members === null ? (
+        <div style={{ textAlign:"center", padding:"40px 0", color:"var(--text-sub)", fontSize:13 }}>불러오는 중...</div>
+      ) : members.length === 0 ? (
+        <div style={{ textAlign:"center", padding:"40px 0", color:"var(--text-sub)", fontSize:13 }}>등록된 회원이 없습니다</div>
+      ) : (
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          {members.map(m => {
+            const st = statusOf(m);
+            return (
+              <div key={m.email} style={{ ...S.card, marginBottom:0, padding:"14px 16px" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:8 }}>
+                  <div style={{ minWidth:0 }}>
+                    <div style={{ fontSize:13, fontWeight:700, wordBreak:"break-all" }}>{m.email}</div>
+                    <div style={{ fontSize:11, color:"var(--text-sub)", marginTop:3 }}>
+                      <span style={{ color:st.color, fontWeight:700 }}>{st.label}</span>
+                      {m.expires && <span style={{ marginLeft:8, fontFamily:"'DM Mono',monospace" }}>~{m.expires}</span>}
+                      {m.plan && <span style={{ marginLeft:8 }}>{m.plan}일권</span>}
+                    </div>
+                  </div>
+                  <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                    <button disabled={busy} onClick={() => act(() => adminExtend(m.email, 30), "✅ 30일 연장")} style={{ ...S.btn(), padding:"6px 10px", fontSize:11 }}>+30일</button>
+                    <button disabled={busy} onClick={() => act(() => adminExtend(m.email, 365), "✅ 365일 연장")} style={{ ...S.btn(), padding:"6px 10px", fontSize:11 }}>+365일</button>
+                    {m.banned ? (
+                      <button disabled={busy} onClick={() => act(() => adminSetBanned(m.email, false), "✅ 차단 해제")} style={{ ...S.btn(), padding:"6px 10px", fontSize:11, color:"var(--green)" }}>차단해제</button>
+                    ) : (
+                      <button disabled={busy} onClick={() => { if (confirm(`${m.email}\n이 계정을 차단할까요?`)) act(() => adminSetBanned(m.email, true), "🚫 차단됨"); }} style={{ ...S.btn(), padding:"6px 10px", fontSize:11, color:"var(--red)" }}>차단</button>
+                    )}
+                    <button disabled={busy} onClick={() => { if (confirm(`${m.email}\n명단에서 삭제할까요? (코드로 재등록 가능)`)) act(() => adminDeleteMember(m.email), "🗑️ 삭제됨"); }} style={{ ...S.btn(), padding:"6px 10px", fontSize:11 }}>삭제</button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── 매장 선택 화면 ─────────────────────────────────────────────────────────────
-function StoreScreen({ user, stores, onSelect, onDelete, addingStore, setAddingStore, newStoreName, setNewStoreName, newStoreColor, setNewStoreColor, onAddStore, onLogout }: any) {
+function StoreScreen({ user, stores, onSelect, onDelete, addingStore, setAddingStore, newStoreName, setNewStoreName, newStoreColor, setNewStoreColor, onAddStore, onLogout, isAdmin, onAdmin }: any) {
   const hour = new Date().getHours();
   const greeting = hour < 5 ? "늦은 시간까지 고생 많으십니다" : hour < 11 ? "좋은 아침입니다" : hour < 17 ? "오늘 장사도 화이팅입니다" : "오늘 하루도 수고하셨습니다";
   const firstName = (user.displayName || user.email || "").split("@")[0];
@@ -690,7 +817,10 @@ function StoreScreen({ user, stores, onSelect, onDelete, addingStore, setAddingS
             오늘은 어느 가게<br/>문을 열까요<span style={{ color:"var(--accent)" }}>?</span>
           </div>
         </div>
-        <button onClick={onLogout} style={{ ...S.btn(), fontSize:12, padding:"8px 14px", flexShrink:0 }}>로그아웃</button>
+        <div style={{ display:"flex", gap:8, flexShrink:0 }}>
+          {isAdmin && <button onClick={onAdmin} style={{ ...S.btn(), fontSize:12, padding:"8px 14px" }}>⚙️ 회원 관리</button>}
+          <button onClick={onLogout} style={{ ...S.btn(), fontSize:12, padding:"8px 14px" }}>로그아웃</button>
+        </div>
       </div>
 
       {stores.length === 0 && !addingStore && (
@@ -758,7 +888,7 @@ function StoreScreen({ user, stores, onSelect, onDelete, addingStore, setAddingS
 }
 
 // ── 원가 계산 패널 ─────────────────────────────────────────────────────────────
-function CalcPanel({ menus, onChange, onAdd, onDelete, onDuplicate, onMove }: { menus: Menu[]; onChange: (m: Menu) => void; onAdd: () => void; onDelete: (id: string) => void; onDuplicate: (m: Menu) => void; onMove: (id: string, dir: -1 | 1) => void; }) {
+function CalcPanel({ menus, onChange, onAdd, onDelete, onDuplicate, onMove, uid, storeId }: { menus: Menu[]; onChange: (m: Menu) => void; onAdd: () => void; onDelete: (id: string) => void; onDuplicate: (m: Menu) => void; onMove: (id: string, dir: -1 | 1) => void; uid: string; storeId: string; }) {
   return (
     <div>
       <div style={{ background:"rgba(245,200,66,0.07)", border:"1px solid rgba(245,200,66,0.2)", borderRadius:"var(--radius)", padding:"14px 18px", fontSize:13, color:"var(--text-sub)", lineHeight:1.7, marginBottom:20 }}>
@@ -771,7 +901,7 @@ function CalcPanel({ menus, onChange, onAdd, onDelete, onDuplicate, onMove }: { 
         <div style={{ textAlign:"center", padding:"40px 0", color:"var(--text-sub)", fontSize:14 }}>아직 메뉴가 없어요. 아래 버튼으로 추가해보세요!</div>
       )}
       {menus.map((menu, idx) => (
-        <MenuCard key={menu.id} menu={menu} colorIdx={idx} onChange={onChange} onDelete={onDelete} onDuplicate={onDuplicate} onMove={onMove} isFirst={idx === 0} isLast={idx === menus.length - 1} />
+        <MenuCard key={menu.id} menu={menu} colorIdx={idx} onChange={onChange} onDelete={onDelete} onDuplicate={onDuplicate} onMove={onMove} isFirst={idx === 0} isLast={idx === menus.length - 1} uid={uid} storeId={storeId} />
       ))}
       <button onClick={onAdd} style={{ width:"100%", padding:14, borderRadius:"var(--radius)", border:"1px dashed var(--border)", background:"transparent", color:"var(--text-sub)", fontFamily:"'Noto Sans KR',sans-serif", fontSize:14, cursor:"pointer" }}>
         ＋ 메뉴 추가하기
@@ -783,8 +913,19 @@ function CalcPanel({ menus, onChange, onAdd, onDelete, onDuplicate, onMove }: { 
 // ── 메뉴 카드 ─────────────────────────────────────────────────────────────────
 const MENU_COLORS = ["#f5c842","#ff6b35","#3dd68c","#60a5fa","#c084fc","#f472b6"];
 
-function MenuCard({ menu, colorIdx, onChange, onDelete, onDuplicate, onMove, isFirst, isLast }: { menu: Menu; colorIdx: number; onChange: (m: Menu) => void; onDelete: (id: string) => void; onDuplicate: (m: Menu) => void; onMove: (id: string, dir: -1 | 1) => void; isFirst: boolean; isLast: boolean; }) {
+function MenuCard({ menu, colorIdx, onChange, onDelete, onDuplicate, onMove, isFirst, isLast, uid, storeId }: { menu: Menu; colorIdx: number; onChange: (m: Menu) => void; onDelete: (id: string) => void; onDuplicate: (m: Menu) => void; onMove: (id: string, dir: -1 | 1) => void; isFirst: boolean; isLast: boolean; uid: string; storeId: string; }) {
   const dragIdx = useRef<number | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [history, setHistory] = useState<MenuHistoryEntry[] | null>(null);
+
+  async function toggleHistory() {
+    if (showHistory) { setShowHistory(false); return; }
+    setShowHistory(true);
+    if (history === null && menu.id) {
+      const h = await getMenuHistory(uid, storeId, menu.id);
+      setHistory(h);
+    }
+  }
   const color = MENU_COLORS[colorIdx % MENU_COLORS.length];
   const cost = calcMenuCost(menu.ingredients || []);
   const rate = calcRate(cost, menu.price);
@@ -985,8 +1126,81 @@ function MenuCard({ menu, colorIdx, onChange, onDelete, onDuplicate, onMove, isF
               </div>
             </div>
           )}
+
+          {/* 원가율 추이 */}
+          <button onClick={toggleHistory} style={{ width:"100%", marginTop:12, padding:"8px", borderRadius:8, border:"1px solid var(--border)", background:"transparent", color: showHistory ? "var(--accent)" : "var(--text-sub)", fontFamily:"'Noto Sans KR',sans-serif", fontSize:12, cursor:"pointer" }}>
+            📈 원가율 추이 {showHistory ? "접기 ▲" : "보기 ▼"}
+          </button>
+          {showHistory && <HistoryPanel history={history} />}
         </>
       )}
+    </div>
+  );
+}
+
+// ── 원가율 추이 패널 ──────────────────────────────────────────────────────────
+function HistoryPanel({ history }: { history: MenuHistoryEntry[] | null }) {
+  if (history === null) return (
+    <div style={{ textAlign:"center", padding:"18px 0", color:"var(--text-sub)", fontSize:12 }}>불러오는 중...</div>
+  );
+  if (history.length === 0) return (
+    <div style={{ textAlign:"center", padding:"18px 0", color:"var(--text-sub)", fontSize:12, lineHeight:1.7 }}>
+      아직 기록이 없습니다.<br/>재료나 판매가를 수정하면 오늘부터 자동으로 쌓여요.
+    </div>
+  );
+
+  const recent = history.slice(-30);
+  const first = recent[0];
+  const last = recent[recent.length - 1];
+  const costDiff = last.cost - first.cost;
+  const rateDiff = Math.round((last.costRate - first.costRate) * 10) / 10;
+
+  // 미니 스파크라인 (costRate)
+  const rates = recent.map(h => h.costRate);
+  const min = Math.min(...rates), max = Math.max(...rates);
+  const range = max - min || 1;
+  const W = 280, H = 48;
+  const pts = rates.map((r, i) => {
+    const x = rates.length === 1 ? W / 2 : (i / (rates.length - 1)) * W;
+    const y = H - ((r - min) / range) * (H - 8) - 4;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+
+  return (
+    <div style={{ marginTop:10, background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:10, padding:"14px 16px" }}>
+      {/* 요약 */}
+      {recent.length >= 2 && (
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12, fontSize:12 }}>
+          <span style={{ color:"var(--text-sub)" }}>{first.date} ~ {last.date} · {recent.length}회 기록</span>
+          <span style={{ fontFamily:"'DM Mono',monospace", fontWeight:700, color: rateDiff > 0 ? "var(--red)" : rateDiff < 0 ? "var(--green)" : "var(--text-sub)" }}>
+            {rateDiff > 0 ? `+${rateDiff}%p ↑` : rateDiff < 0 ? `${rateDiff}%p ↓` : "변동 없음"}
+            {costDiff !== 0 && <span style={{ marginLeft:8, fontSize:11, color:"var(--text-sub)" }}>({costDiff > 0 ? "+" : ""}{fmt(costDiff)}원)</span>}
+          </span>
+        </div>
+      )}
+
+      {/* 스파크라인 */}
+      {recent.length >= 2 && (
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width:"100%", height:48, marginBottom:12, display:"block" }}>
+          <polyline points={pts} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        </svg>
+      )}
+
+      {/* 이력 목록 (최근 8개, 최신순) */}
+      <div style={{ display:"grid", gridTemplateColumns:"auto 1fr auto auto", gap:"5px 14px", fontSize:12 }}>
+        <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)" }}>날짜</div>
+        <div></div>
+        <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", textAlign:"right" }}>원가</div>
+        <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", textAlign:"right" }}>원가율</div>
+        {recent.slice(-8).reverse().map(h => (
+          <React.Fragment key={h.date}>
+            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"var(--text-sub)" }}>{h.date}</div>
+            <div></div>
+            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, textAlign:"right" }}>{fmt(h.cost)}원</div>
+            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, textAlign:"right", color:rateColor(h.costRate) }}>{h.costRate}%</div>
+          </React.Fragment>
+        ))}
+      </div>
     </div>
   );
 }
