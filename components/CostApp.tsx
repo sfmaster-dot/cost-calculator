@@ -94,7 +94,7 @@ const S = {
     borderRadius: "8px",
     padding: "9px 12px",
     color: "var(--text)",
-    fontFamily: "'Noto Sans KR', sans-serif",
+    fontFamily: "var(--font-sans)",
     fontSize: "13px",
     outline: "none",
   } as React.CSSProperties,
@@ -103,7 +103,7 @@ const S = {
     borderRadius: "8px",
     padding: "9px 16px",
     fontSize: "13px",
-    fontFamily: "'Noto Sans KR', sans-serif",
+    fontFamily: "var(--font-sans)",
     fontWeight: 600,
     cursor: "pointer",
     background: variant === "primary" ? "var(--accent)"
@@ -413,7 +413,7 @@ export default function CostApp() {
   }
 
   if (loading) return (
-    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", color:"var(--text-sub)", fontFamily:"'Noto Sans KR',sans-serif" }}>
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", color:"var(--text-sub)", fontFamily:"var(--font-sans)" }}>
       로딩 중...
     </div>
   );
@@ -421,7 +421,7 @@ export default function CostApp() {
   if (!user) return <LoginScreen onLogin={loginWithGoogle} />;
 
   if (accessChecking) return (
-    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", color:"var(--text-sub)", fontFamily:"'Noto Sans KR',sans-serif" }}>
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", color:"var(--text-sub)", fontFamily:"var(--font-sans)" }}>
       이용권 확인 중...
     </div>
   );
@@ -494,7 +494,7 @@ export default function CostApp() {
             flex:1, padding:"9px", border:"none", borderRadius:8,
             background: tab===t ? "var(--accent)" : "transparent",
             color: tab===t ? "#0f1117" : "var(--text-sub)",
-            fontFamily:"'Noto Sans KR',sans-serif", fontSize:13, fontWeight: tab===t ? 700 : 500, cursor:"pointer",
+            fontFamily:"var(--font-sans)", fontSize:13, fontWeight: tab===t ? 700 : 500, cursor:"pointer",
           }}>
             {["📋 원가 계산","📊 메뉴 비교","🎯 판매가 역산"][i]}
           </button>
@@ -510,7 +510,7 @@ export default function CostApp() {
         transform:`translateX(-50%) translateY(${toastShow ? 0 : 80}px)`,
         opacity: toastShow ? 1 : 0,
         background:"var(--accent)", color:"#0f1117",
-        fontFamily:"'Noto Sans KR',sans-serif", fontSize:13, fontWeight:700,
+        fontFamily:"var(--font-sans)", fontSize:13, fontWeight:700,
         padding:"11px 22px", borderRadius:99, transition:"all 0.3s",
         pointerEvents:"none", zIndex:999, whiteSpace:"nowrap",
       }}>{toastMsg}</div>
@@ -544,7 +544,7 @@ function AccessGate({ user, access, onRedeemed, onLogout }: {
   }
 
   return (
-    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:"100vh", padding:"32px 24px", background:"var(--bg)", fontFamily:"'Noto Sans KR',sans-serif" }}>
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:"100vh", padding:"32px 24px", background:"var(--bg)", fontFamily:"var(--font-sans)" }}>
       <div style={{ background:"var(--surface)", borderRadius:20, padding:"40px 30px 30px", width:"100%", maxWidth:400, boxShadow:"0 8px 40px rgba(0,0,0,0.4)" }}>
 
         <div style={{ textAlign:"center", marginBottom:26 }}>
@@ -572,7 +572,7 @@ function AccessGate({ user, access, onRedeemed, onLogout }: {
             borderRadius:12, padding:"14px 8px", textDecoration:"none",
           }}>
             <span style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>1개월권</span>
-            <span style={{ fontSize:12, color:"var(--accent)", fontFamily:"'DM Mono',monospace" }}>49,800원</span>
+            <span style={{ fontSize:12, color:"var(--accent)", fontFamily:"var(--font-num)" }}>49,800원</span>
           </a>
           <a href={PURCHASE_LINKS.year} target="_blank" style={{
             display:"flex", flexDirection:"column", alignItems:"center", gap:3,
@@ -581,7 +581,7 @@ function AccessGate({ user, access, onRedeemed, onLogout }: {
           }}>
             <span style={{ position:"absolute", top:-9, right:8, background:"var(--accent)", color:"#0f1117", fontSize:9, fontWeight:800, padding:"2px 8px", borderRadius:99 }}>BEST</span>
             <span style={{ fontSize:13, fontWeight:700, color:"var(--accent)" }}>1년권</span>
-            <span style={{ fontSize:12, color:"var(--accent)", fontFamily:"'DM Mono',monospace" }}>148,000원</span>
+            <span style={{ fontSize:12, color:"var(--accent)", fontFamily:"var(--font-num)" }}>148,000원</span>
           </a>
         </div>
 
@@ -591,7 +591,7 @@ function AccessGate({ user, access, onRedeemed, onLogout }: {
         </div>
         <div style={{ display:"flex", gap:8, marginBottom:10 }}>
           <input
-            style={{ ...S.input, flex:1, fontFamily:"'DM Mono',monospace", letterSpacing:"0.05em" }}
+            style={{ ...S.input, flex:1, fontFamily:"var(--font-num)", letterSpacing:"0.05em" }}
             placeholder="입장코드"
             value={code}
             onChange={e => setCode(e.target.value)}
@@ -642,7 +642,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
           width:"100%", display:"flex", alignItems:"center", justifyContent:"center", gap:10,
           background:"var(--surface2)", color:"var(--text)",
           border:"1px solid var(--border)", borderRadius:12, padding:"14px 24px",
-          fontSize:15, fontWeight:700, fontFamily:"'Noto Sans KR',sans-serif", cursor:"pointer",
+          fontSize:15, fontWeight:700, fontFamily:"var(--font-sans)", cursor:"pointer",
           marginBottom:16,
         }}>
           <svg width="18" height="18" viewBox="0 0 48 48">
@@ -723,7 +723,7 @@ function AdminPanel({ onBack }: { onBack: () => void }) {
   const bannedCount = (members||[]).filter(m => m.banned).length;
 
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto", padding: "40px 16px 80px", fontFamily:"'Noto Sans KR',sans-serif" }}>
+    <div style={{ maxWidth: 760, margin: "0 auto", padding: "40px 16px 80px", fontFamily:"var(--font-sans)" }}>
       <div style={{
         position:"fixed", bottom:32, left:"50%",
         transform:`translateX(-50%) translateY(${toastShow ? 0 : 80}px)`,
@@ -750,7 +750,7 @@ function AdminPanel({ onBack }: { onBack: () => void }) {
         ].map(([l, v, c]) => (
           <div key={l as string} style={{ ...S.card, padding:"14px", textAlign:"center", marginBottom:0 }}>
             <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:4 }}>{l}</div>
-            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:20, color:c as string }}>{v}</div>
+            <div style={{ fontFamily:"var(--font-num)", fontSize:20, fontWeight:700, color:c as string }}>{v}</div>
           </div>
         ))}
       </div>
@@ -781,7 +781,7 @@ function AdminPanel({ onBack }: { onBack: () => void }) {
                     <div style={{ fontSize:13, fontWeight:700, wordBreak:"break-all" }}>{m.email}</div>
                     <div style={{ fontSize:11, color:"var(--text-sub)", marginTop:3 }}>
                       <span style={{ color:st.color, fontWeight:700 }}>{st.label}</span>
-                      {m.expires && <span style={{ marginLeft:8, fontFamily:"'DM Mono',monospace" }}>~{m.expires}</span>}
+                      {m.expires && <span style={{ marginLeft:8, fontFamily:"var(--font-num)" }}>~{m.expires}</span>}
                       {m.plan && <span style={{ marginLeft:8 }}>{m.plan}일권</span>}
                     </div>
                   </div>
@@ -893,7 +893,7 @@ function StoreScreen({ user, stores, onSelect, onDelete, addingStore, setAddingS
         </div>
       ) : (
         <button className="rise" onClick={() => setAddingStore(true)}
-          style={{ animationDelay: `${0.08 + stores.length * 0.07}s`, width:"100%", padding:18, borderRadius:16, border:"1.5px dashed var(--border)", background:"transparent", color:"var(--text-sub)", fontFamily:"'Noto Sans KR',sans-serif", fontSize:14, cursor:"pointer", transition:"border-color 0.2s, color 0.2s" }}
+          style={{ animationDelay: `${0.08 + stores.length * 0.07}s`, width:"100%", padding:18, borderRadius:16, border:"1.5px dashed var(--border)", background:"transparent", color:"var(--text-sub)", fontFamily:"var(--font-sans)", fontSize:14, cursor:"pointer", transition:"border-color 0.2s, color 0.2s" }}
           onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
           onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-sub)"; }}>
           ＋ 매장 추가
@@ -919,7 +919,7 @@ function CalcPanel({ menus, onChange, onAdd, onDelete, onDuplicate, onMove, uid,
       {menus.map((menu, idx) => (
         <MenuCard key={menu.id} menu={menu} colorIdx={idx} onChange={onChange} onDelete={onDelete} onDuplicate={onDuplicate} onMove={onMove} isFirst={idx === 0} isLast={idx === menus.length - 1} uid={uid} storeId={storeId} />
       ))}
-      <button onClick={onAdd} style={{ width:"100%", padding:14, borderRadius:"var(--radius)", border:"1px dashed var(--border)", background:"transparent", color:"var(--text-sub)", fontFamily:"'Noto Sans KR',sans-serif", fontSize:14, cursor:"pointer" }}>
+      <button onClick={onAdd} style={{ width:"100%", padding:14, borderRadius:"var(--radius)", border:"1px dashed var(--border)", background:"transparent", color:"var(--text-sub)", fontFamily:"var(--font-sans)", fontSize:14, cursor:"pointer" }}>
         ＋ 메뉴 추가하기
       </button>
     </div>
@@ -1041,7 +1041,7 @@ function MenuCard({ menu, colorIdx, onChange, onDelete, onDuplicate, onMove, isF
         <div>
           <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>판매가 (원)</div>
           <div style={{ position:"relative" }}>
-            <input type="number" style={{ ...S.input, fontFamily:"'DM Mono',monospace", paddingRight:30 }}
+            <input type="number" style={{ ...S.input, fontFamily:"var(--font-num)", paddingRight:30 }}
               placeholder="22000" value={menu.price||""}
               onChange={e => onChange({ ...menu, price: parseFloat(e.target.value)||0 })} />
             <span style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>원</span>
@@ -1050,7 +1050,7 @@ function MenuCard({ menu, colorIdx, onChange, onDelete, onDuplicate, onMove, isF
         <div>
           <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>목표 원가율 (%)</div>
           <div style={{ position:"relative" }}>
-            <input type="number" style={{ ...S.input, fontFamily:"'DM Mono',monospace", paddingRight:30 }}
+            <input type="number" style={{ ...S.input, fontFamily:"var(--font-num)", paddingRight:30 }}
               placeholder="30" value={menu.targetRate||30}
               onChange={e => onChange({ ...menu, targetRate: parseFloat(e.target.value)||30 })} />
             <span style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>%</span>
@@ -1083,27 +1083,27 @@ function MenuCard({ menu, colorIdx, onChange, onDelete, onDuplicate, onMove, isF
             </div>
             <div className="ing-field">
               <span className="ing-label">구매량(g)</span>
-              <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }}
+              <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"var(--font-num)", fontSize:12 }}
                 placeholder="5400" value={ing.purchaseQty||""} onChange={e => updateIng(idx,"purchaseQty",e.target.value)} />
             </div>
             <div className="ing-field">
               <span className="ing-label">구매가(원)</span>
-              <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }}
+              <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"var(--font-num)", fontSize:12 }}
                 placeholder="64000" value={ing.purchasePrice||""} onChange={e => updateIng(idx,"purchasePrice",e.target.value)} />
             </div>
             <div className="ing-field">
               <span className="ing-label">수율(%)</span>
-              <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }}
+              <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"var(--font-num)", fontSize:12 }}
                 placeholder="100" value={ing.yieldRate||""} onChange={e => updateIng(idx,"yieldRate",e.target.value)} />
             </div>
             <div className="ing-field">
               <span className="ing-label">사용량(g)</span>
-              <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12 }}
+              <input type="number" style={{ ...S.input, textAlign:"right", fontFamily:"var(--font-num)", fontSize:12 }}
                 placeholder="300" value={ing.amount||""} onChange={e => updateIng(idx,"amount",e.target.value)} />
             </div>
             <div className="ing-field ing-cost">
               <span className="ing-label">원가(원)</span>
-              <div style={{ background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:8, padding:"8px 10px", textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:12, color: ingCost > 0 ? "var(--green)" : "var(--text-sub)" }}>
+              <div style={{ background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:8, padding:"8px 10px", textAlign:"right", fontFamily:"var(--font-num)", fontSize:12, color: ingCost > 0 ? "var(--green)" : "var(--text-sub)" }}>
                 {ingCost > 0 ? `${fmtDec(ingCost)}원` : "—"}
               </div>
             </div>
@@ -1112,7 +1112,7 @@ function MenuCard({ menu, colorIdx, onChange, onDelete, onDuplicate, onMove, isF
         );
       })}
 
-      <button onClick={addIng} style={{ width:"100%", padding:"7px", borderRadius:8, border:"1px dashed var(--border)", background:"transparent", color:"var(--text-sub)", fontFamily:"'Noto Sans KR',sans-serif", fontSize:12, cursor:"pointer", marginBottom:16 }}>
+      <button onClick={addIng} style={{ width:"100%", padding:"7px", borderRadius:8, border:"1px dashed var(--border)", background:"transparent", color:"var(--text-sub)", fontFamily:"var(--font-sans)", fontSize:12, cursor:"pointer", marginBottom:16 }}>
         ＋ 재료 추가
       </button>
 
@@ -1127,7 +1127,7 @@ function MenuCard({ menu, colorIdx, onChange, onDelete, onDuplicate, onMove, isF
             ].map(([label, val, col]) => (
               <div key={label as string} style={{ textAlign:"center" }}>
                 <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", letterSpacing:"0.05em", marginBottom:4 }}>{label}</div>
-                <div style={{ fontFamily:"'DM Mono',monospace", fontSize:17, color:col as string }}>{val}</div>
+                <div style={{ fontFamily:"var(--font-num)", fontSize:19, fontWeight:700, color:col as string }}>{val}</div>
               </div>
             ))}
           </div>
@@ -1147,12 +1147,12 @@ function MenuCard({ menu, colorIdx, onChange, onDelete, onDuplicate, onMove, isF
           {rate > target && (
             <div style={{ marginTop:10, padding:"9px 12px", borderRadius:8, background:"rgba(255,92,92,0.08)", border:"1px solid rgba(255,92,92,0.3)", fontSize:12, display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, flexWrap:"wrap" }}>
               <span style={{ color:"var(--red)", fontWeight:700 }}>⚠️ 목표 원가율 초과</span>
-              <span style={{ color:"var(--text)" }}>권장 판매가 <strong style={{ fontFamily:"'DM Mono',monospace", fontSize:14, color:"var(--accent)" }}>{fmt(recommendPrice(cost, target))}원</strong> <span style={{ fontSize:11, color:"var(--text-sub)" }}>(+{fmt(recommendPrice(cost, target) - menu.price)}원)</span></span>
+              <span style={{ color:"var(--text)" }}>권장 판매가 <strong style={{ fontFamily:"var(--font-num)", fontSize:14, color:"var(--accent)" }}>{fmt(recommendPrice(cost, target))}원</strong> <span style={{ fontSize:11, color:"var(--text-sub)" }}>(+{fmt(recommendPrice(cost, target) - menu.price)}원)</span></span>
             </div>
           )}
 
           {/* 원가율 추이 */}
-          <button onClick={toggleHistory} style={{ width:"100%", marginTop:12, padding:"8px", borderRadius:8, border:"1px solid var(--border)", background:"transparent", color: showHistory ? "var(--accent)" : "var(--text-sub)", fontFamily:"'Noto Sans KR',sans-serif", fontSize:12, cursor:"pointer" }}>
+          <button onClick={toggleHistory} style={{ width:"100%", marginTop:12, padding:"8px", borderRadius:8, border:"1px solid var(--border)", background:"transparent", color: showHistory ? "var(--accent)" : "var(--text-sub)", fontFamily:"var(--font-sans)", fontSize:12, cursor:"pointer" }}>
             📈 원가율 추이 {showHistory ? "접기 ▲" : "보기 ▼"}
           </button>
           {showHistory && <HistoryPanel history={history} />}
@@ -1196,7 +1196,7 @@ function HistoryPanel({ history }: { history: MenuHistoryEntry[] | null }) {
       {recent.length >= 2 && (
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12, fontSize:12 }}>
           <span style={{ color:"var(--text-sub)" }}>{first.date} ~ {last.date} · {recent.length}회 기록</span>
-          <span style={{ fontFamily:"'DM Mono',monospace", fontWeight:700, color: rateDiff > 0 ? "var(--red)" : rateDiff < 0 ? "var(--green)" : "var(--text-sub)" }}>
+          <span style={{ fontFamily:"var(--font-num)", fontWeight:700, color: rateDiff > 0 ? "var(--red)" : rateDiff < 0 ? "var(--green)" : "var(--text-sub)" }}>
             {rateDiff > 0 ? `+${rateDiff}%p ↑` : rateDiff < 0 ? `${rateDiff}%p ↓` : "변동 없음"}
             {costDiff !== 0 && <span style={{ marginLeft:8, fontSize:11, color:"var(--text-sub)" }}>({costDiff > 0 ? "+" : ""}{fmt(costDiff)}원)</span>}
           </span>
@@ -1218,10 +1218,10 @@ function HistoryPanel({ history }: { history: MenuHistoryEntry[] | null }) {
         <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", textAlign:"right" }}>원가율</div>
         {recent.slice(-8).reverse().map(h => (
           <React.Fragment key={h.date}>
-            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color:"var(--text-sub)" }}>{h.date}</div>
+            <div style={{ fontFamily:"var(--font-num)", fontSize:11, color:"var(--text-sub)" }}>{h.date}</div>
             <div></div>
-            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, textAlign:"right" }}>{fmt(h.cost)}원</div>
-            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:11, textAlign:"right", color:rateColor(h.costRate) }}>{h.costRate}%</div>
+            <div style={{ fontFamily:"var(--font-num)", fontSize:11, textAlign:"right" }}>{fmt(h.cost)}원</div>
+            <div style={{ fontFamily:"var(--font-num)", fontSize:11, textAlign:"right", color:rateColor(h.costRate) }}>{h.costRate}%</div>
           </React.Fragment>
         ))}
       </div>
@@ -1289,8 +1289,8 @@ function SummaryPanel({ menus }: { menus: Menu[] }) {
                 <span style={{ fontSize:13, fontWeight:600 }}>{m.name||"(이름 없음)"}</span>
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:12, color:"var(--text-sub)" }}>{fmt(cost)}원</span>
-                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:14, fontWeight:700, color:rateColor(rate) }}>{rate.toFixed(1)}%</span>
+                <span style={{ fontFamily:"var(--font-num)", fontSize:12, color:"var(--text-sub)" }}>{fmt(cost)}원</span>
+                <span style={{ fontFamily:"var(--font-num)", fontSize:14, fontWeight:700, color:rateColor(rate) }}>{rate.toFixed(1)}%</span>
                 <span style={{ fontSize:12 }}>{rateLabel(rate)}</span>
               </div>
             </div>
@@ -1318,18 +1318,18 @@ function SummaryPanel({ menus }: { menus: Menu[] }) {
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:16 }}>
             <div style={{ background:"var(--surface2)", borderRadius:10, padding:"14px 16px", border:"1px solid var(--border)", textAlign:"center" }}>
               <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:4 }}>평균 원가율</div>
-              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:22, color:rateColor(avgRate), fontWeight:600 }}>{avgRate.toFixed(1)}%</div>
+              <div style={{ fontFamily:"var(--font-num)", fontSize:22, color:rateColor(avgRate), fontWeight:700 }}>{avgRate.toFixed(1)}%</div>
               <div style={{ fontSize:11, marginTop:4 }}>{rateLabel(avgRate)}</div>
             </div>
             <div style={{ background:"var(--surface2)", borderRadius:10, padding:"14px 16px", border:`1px solid ${maxRate ? rateColor(maxRate.rate)+"44" : "var(--border)"}`, textAlign:"center" }}>
               <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:4 }}>⚠️ 가장 위험한 메뉴</div>
               <div style={{ fontSize:13, fontWeight:700, marginBottom:4, color:"var(--text)" }}>{maxRate?.m.name||"—"}</div>
-              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:18, color: maxRate ? rateColor(maxRate.rate) : "var(--text-sub)" }}>{maxRate ? `${maxRate.rate.toFixed(1)}%` : "—"}</div>
+              <div style={{ fontFamily:"var(--font-num)", fontSize:18, fontWeight:700, color: maxRate ? rateColor(maxRate.rate) : "var(--text-sub)" }}>{maxRate ? `${maxRate.rate.toFixed(1)}%` : "—"}</div>
             </div>
             <div style={{ background:"var(--surface2)", borderRadius:10, padding:"14px 16px", border:`1px solid ${minRate ? rateColor(minRate.rate)+"44" : "var(--border)"}`, textAlign:"center" }}>
               <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:4 }}>✅ 가장 효율적 메뉴</div>
               <div style={{ fontSize:13, fontWeight:700, marginBottom:4, color:"var(--text)" }}>{minRate?.m.name||"—"}</div>
-              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:18, color: minRate ? rateColor(minRate.rate) : "var(--text-sub)" }}>{minRate ? `${minRate.rate.toFixed(1)}%` : "—"}</div>
+              <div style={{ fontFamily:"var(--font-num)", fontSize:18, fontWeight:700, color: minRate ? rateColor(minRate.rate) : "var(--text-sub)" }}>{minRate ? `${minRate.rate.toFixed(1)}%` : "—"}</div>
             </div>
           </div>
           {/* 목표 대비 */}
@@ -1364,7 +1364,7 @@ function SummaryPanel({ menus }: { menus: Menu[] }) {
                   <span style={{ fontSize:11, color:"var(--text-sub)", flexShrink:0 }}>원가율 {rate.toFixed(1)}% / 목표 {m.targetRate || 30}%</span>
                 </div>
                 <div style={{ display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
-                  <span style={{ fontFamily:"'DM Mono',monospace", fontSize:12, color:"var(--text-sub)" }}>{over ? `${fmt(m.price)}원 → ${fmt(rec)}원` : `${fmt(m.price)}원`}</span>
+                  <span style={{ fontFamily:"var(--font-num)", fontSize:12, color:"var(--text-sub)" }}>{over ? `${fmt(m.price)}원 → ${fmt(rec)}원` : `${fmt(m.price)}원`}</span>
                   {over
                     ? <span style={{ fontSize:11, fontWeight:700, color:"var(--red)", background:"rgba(255,92,92,0.1)", border:"1px solid rgba(255,92,92,0.3)", borderRadius:99, padding:"3px 9px" }}>+{fmt(gap)}원 인상 검토</span>
                     : <span style={{ fontSize:11, fontWeight:700, color:"var(--green)", background:"rgba(61,214,140,0.08)", border:"1px solid rgba(61,214,140,0.25)", borderRadius:99, padding:"3px 9px" }}>✅ 적정</span>}
@@ -1406,7 +1406,7 @@ function SummaryPanel({ menus }: { menus: Menu[] }) {
                     {items.map((item, i) => (
                       <span key={i} style={{ fontSize:11, background:"var(--surface)", border:"1px solid var(--border)", borderRadius:6, padding:"3px 10px", color:"var(--text-sub)" }}>
                         {item.ingName}
-                        {item.price > 0 && <span style={{ marginLeft:4, fontFamily:"'DM Mono',monospace", color:days>=60?"var(--red)":"#f5c842" }}>{fmt(item.price)}원 기준</span>}
+                        {item.price > 0 && <span style={{ marginLeft:4, fontFamily:"var(--font-num)", color:days>=60?"var(--red)":"#f5c842" }}>{fmt(item.price)}원 기준</span>}
                       </span>
                     ))}
                   </div>
@@ -1568,8 +1568,8 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
     finally { setApplying(false); }
   }
 
-  const stepBtnStyle: React.CSSProperties = { width:56, padding:"10px 0", border:"1px solid var(--border)", borderRadius:8, background:"var(--surface2)", color:"var(--text)", fontFamily:"'DM Mono',monospace", fontSize:13, fontWeight:700, cursor:"pointer", flexShrink:0 };
-  const quickBtnStyle: React.CSSProperties = { padding:"10px 12px", border:"1px solid var(--border)", borderRadius:8, background:"transparent", color:"var(--text-sub)", fontFamily:"'Noto Sans KR',sans-serif", fontSize:12, cursor:"pointer", flexShrink:0 };
+  const stepBtnStyle: React.CSSProperties = { width:56, padding:"10px 0", border:"1px solid var(--border)", borderRadius:8, background:"var(--surface2)", color:"var(--text)", fontFamily:"var(--font-num)", fontSize:13, fontWeight:700, cursor:"pointer", flexShrink:0 };
+  const quickBtnStyle: React.CSSProperties = { padding:"10px 12px", border:"1px solid var(--border)", borderRadius:8, background:"transparent", color:"var(--text-sub)", fontFamily:"var(--font-sans)", fontSize:12, cursor:"pointer", flexShrink:0 };
 
   return (
     <div>
@@ -1586,7 +1586,7 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
           <div>
             <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>직접 입력 (원)</div>
             <div style={{ position:"relative" }}>
-              <input type="number" placeholder="6000" style={{ ...S.input, fontFamily:"'DM Mono',monospace", paddingRight:28, fontSize:15 }}
+              <input type="number" placeholder="6000" style={{ ...S.input, fontFamily:"var(--font-num)", paddingRight:28, fontSize:15 }}
                 value={cost||""} onChange={e => { setCost(parseFloat(e.target.value)||0); setSelectedMenuId(""); }} />
               <span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>원</span>
             </div>
@@ -1611,26 +1611,26 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(140px, 1fr))", gap:10 }}>
           <div>
             <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>목표 원가율 (%)</div>
-            <div style={{ position:"relative" }}><input type="number" placeholder="35" style={{ ...S.input, fontFamily:"'DM Mono',monospace", paddingRight:28 }} value={targetRate||""} onChange={e => setTargetRate(parseFloat(e.target.value)||0)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>%</span></div>
+            <div style={{ position:"relative" }}><input type="number" placeholder="35" style={{ ...S.input, fontFamily:"var(--font-num)", paddingRight:28 }} value={targetRate||""} onChange={e => setTargetRate(parseFloat(e.target.value)||0)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>%</span></div>
           </div>
           <div>
             <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>중개수수료 (%)</div>
-            <div style={{ position:"relative" }}><input type="number" step="0.1" style={{ ...S.input, fontFamily:"'DM Mono',monospace", paddingRight:28 }} value={delivFee} onChange={e => setDelivFee(parseFloat(e.target.value)||0)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>%</span></div>
+            <div style={{ position:"relative" }}><input type="number" step="0.1" style={{ ...S.input, fontFamily:"var(--font-num)", paddingRight:28 }} value={delivFee} onChange={e => setDelivFee(parseFloat(e.target.value)||0)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>%</span></div>
             <div style={{ fontSize:9, color:"var(--text-sub)", marginTop:3 }}>상생요금제 상위35% 7.8%</div>
           </div>
           <div>
             <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>결제정산이용료 (%)</div>
-            <div style={{ position:"relative" }}><input type="number" step="0.1" style={{ ...S.input, fontFamily:"'DM Mono',monospace", paddingRight:28 }} value={payFee} onChange={e => setPayFee(parseFloat(e.target.value)||0)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>%</span></div>
+            <div style={{ position:"relative" }}><input type="number" step="0.1" style={{ ...S.input, fontFamily:"var(--font-num)", paddingRight:28 }} value={payFee} onChange={e => setPayFee(parseFloat(e.target.value)||0)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>%</span></div>
             <div style={{ fontSize:9, color:"var(--text-sub)", marginTop:3 }}>배민 기준 3%</div>
           </div>
           <div>
             <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>점주 부담 배달비 (원)</div>
-            <div style={{ position:"relative" }}><input type="number" style={{ ...S.input, fontFamily:"'DM Mono',monospace", paddingRight:28 }} value={deliveryCost} onChange={e => setDeliveryCost(parseFloat(e.target.value)||0)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>원</span></div>
+            <div style={{ position:"relative" }}><input type="number" style={{ ...S.input, fontFamily:"var(--font-num)", paddingRight:28 }} value={deliveryCost} onChange={e => setDeliveryCost(parseFloat(e.target.value)||0)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>원</span></div>
             <div style={{ fontSize:9, color:"var(--text-sub)", marginTop:3 }}>1등급 서울 기준 3,400원</div>
           </div>
           <div>
             <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>포장재·기타 (원)</div>
-            <div style={{ position:"relative" }}><input type="number" placeholder="500" style={{ ...S.input, fontFamily:"'DM Mono',monospace", paddingRight:28 }} value={packCost||""} onChange={e => setPackCost(parseFloat(e.target.value)||0)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>원</span></div>
+            <div style={{ position:"relative" }}><input type="number" placeholder="500" style={{ ...S.input, fontFamily:"var(--font-num)", paddingRight:28 }} value={packCost||""} onChange={e => setPackCost(parseFloat(e.target.value)||0)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>원</span></div>
           </div>
         </div>
         <div style={{ fontSize:11, color:"var(--text-sub)", marginTop:10 }}>
@@ -1656,7 +1656,7 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
                 <span style={{ fontSize:12, fontWeight:700, color:"var(--text-sub)", letterSpacing:"0.05em", textTransform:"uppercase" }}>💰 판매가 시뮬레이션</span>
                 {selectedMenuId && (
                   currentPrice > 0
-                    ? <span style={{ fontSize:12, color:"var(--text-sub)" }}>현재 판매가 <strong style={{ color:"var(--text)", fontFamily:"'DM Mono',monospace", fontSize:14 }}>{fmt(currentPrice)}원</strong></span>
+                    ? <span style={{ fontSize:12, color:"var(--text-sub)" }}>현재 판매가 <strong style={{ color:"var(--text)", fontFamily:"var(--font-num)", fontSize:14 }}>{fmt(currentPrice)}원</strong></span>
                     : <span style={{ fontSize:12, color:"var(--text-sub)" }}>아직 판매가 미설정 메뉴</span>
                 )}
               </div>
@@ -1666,12 +1666,12 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
                 <span style={{ fontSize:12, color:"var(--text)" }}>🛵 배달로 팔 때 남는 몫</span>
                 <div style={{ position:"relative", width:74, flexShrink:0 }}>
                   <input type="number" value={targetRemainStr} onChange={e => setTargetRemainStr(e.target.value)}
-                    style={{ ...S.input, fontFamily:"'DM Mono',monospace", fontSize:14, textAlign:"center", padding:"7px 22px 7px 8px" }} />
+                    style={{ ...S.input, fontFamily:"var(--font-num)", fontSize:14, textAlign:"center", padding:"7px 22px 7px 8px" }} />
                   <span style={{ position:"absolute", right:8, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>%</span>
                 </div>
                 <span style={{ fontSize:12, color:"var(--text)" }}>확보하려면?</span>
                 <button onClick={solveDeliveryPrice} disabled={!remainSolvable}
-                  style={{ padding:"9px 14px", border:"1px solid rgba(245,200,66,0.45)", borderRadius:8, background: remainSolvable ? "rgba(245,200,66,0.12)" : "transparent", color: remainSolvable ? "var(--accent)" : "var(--text-sub)", fontFamily:"'Noto Sans KR',sans-serif", fontSize:12, fontWeight:700, cursor: remainSolvable ? "pointer" : "default", flexShrink:0 }}>
+                  style={{ padding:"9px 14px", border:"1px solid rgba(245,200,66,0.45)", borderRadius:8, background: remainSolvable ? "rgba(245,200,66,0.12)" : "transparent", color: remainSolvable ? "var(--accent)" : "var(--text-sub)", fontFamily:"var(--font-sans)", fontSize:12, fontWeight:700, cursor: remainSolvable ? "pointer" : "default", flexShrink:0 }}>
                   🎯 판매가 자동 찾기
                 </button>
                 {!remainSolvable && validRemain && cost > 0 && (
@@ -1681,14 +1681,14 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
                   <span style={{ fontSize:11, color:"var(--text-sub)" }}>빠른 선택</span>
                   {([["🩹 생존", 30], ["👍 권장", 35], ["😊 여유", 40]] as [string, number][]).map(([label, v]) => (
                     <button key={v} onClick={() => { setTargetRemainStr(String(v)); solveWithRemain(v); }}
-                      style={{ padding:"6px 10px", border:"1px solid var(--border)", borderRadius:99, background: targetRemain === v ? "var(--surface2)" : "transparent", color:"var(--text)", fontFamily:"'Noto Sans KR',sans-serif", fontSize:11, cursor:"pointer" }}>
+                      style={{ padding:"6px 10px", border:"1px solid var(--border)", borderRadius:99, background: targetRemain === v ? "var(--surface2)" : "transparent", color:"var(--text)", fontFamily:"var(--font-sans)", fontSize:11, cursor:"pointer" }}>
                       {label} {v}%
                     </button>
                   ))}
                 </div>
                 {breakEvenPrice > 0 && (
                   <div style={{ fontSize:11, color:"var(--red)", width:"100%", lineHeight:1.6 }}>
-                    🚨 손익분기 판매가 <strong style={{ fontFamily:"'DM Mono',monospace", fontSize:13 }}>{fmt(breakEvenPrice)}원</strong> — 공헌이익이 0이 되는 지점입니다. 이 밑으로 팔면 고정비는커녕 변동비도 못 건져, 팔수록 손해입니다
+                    🚨 손익분기 판매가 <strong style={{ fontFamily:"var(--font-num)", fontSize:13 }}>{fmt(breakEvenPrice)}원</strong> — 공헌이익이 0이 되는 지점입니다. 이 밑으로 팔면 고정비는커녕 변동비도 못 건져, 팔수록 손해입니다
                   </div>
                 )}
               </div>
@@ -1698,7 +1698,7 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
                 <div style={{ position:"relative", flex:1, minWidth:130 }}>
                   <input type="number" placeholder={String(minPrice)}
                     value={simPrice||""} onChange={e => setSimPrice(Math.max(0, parseFloat(e.target.value)||0))}
-                    style={{ ...S.input, fontFamily:"'DM Mono',monospace", fontSize:16, textAlign:"center", paddingRight:30 }} />
+                    style={{ ...S.input, fontFamily:"var(--font-num)", fontSize:16, textAlign:"center", paddingRight:30 }} />
                   <span style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>원</span>
                 </div>
                 <button onClick={() => stepPrice(500)} style={stepBtnStyle}>+500</button>
@@ -1707,10 +1707,10 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
               </div>
               {simPrice > 0 && (
                 <div style={{ display:"flex", gap:16, marginTop:12, flexWrap:"wrap", fontSize:12, color:"var(--text-sub)" }}>
-                  <span>원가율 <strong style={{ fontFamily:"'DM Mono',monospace", fontSize:14, color: targetRate > 0 && foodPct > targetRate ? "var(--red)" : "var(--green)" }}>{foodPct.toFixed(1)}%</strong>{targetRate > 0 && <span> (목표 {targetRate}%)</span>}</span>
-                  <span>남는 몫 <strong style={{ fontFamily:"'DM Mono',monospace", fontSize:14, color: remainPct < 30 ? "var(--red)" : "var(--green)" }}>{remainPct.toFixed(1)}%</strong></span>
+                  <span>원가율 <strong style={{ fontFamily:"var(--font-num)", fontSize:14, color: targetRate > 0 && foodPct > targetRate ? "var(--red)" : "var(--green)" }}>{foodPct.toFixed(1)}%</strong>{targetRate > 0 && <span> (목표 {targetRate}%)</span>}</span>
+                  <span>남는 몫 <strong style={{ fontFamily:"var(--font-num)", fontSize:14, color: remainPct < 30 ? "var(--red)" : "var(--green)" }}>{remainPct.toFixed(1)}%</strong></span>
                   {currentPrice > 0 && simPrice !== currentPrice && (
-                    <span>현재가 대비 <strong style={{ fontFamily:"'DM Mono',monospace", fontSize:14, color: simPrice > currentPrice ? "var(--green)" : "var(--red)" }}>{simPrice > currentPrice ? "+" : "−"}{fmt(Math.abs(simPrice - currentPrice))}원</strong></span>
+                    <span>현재가 대비 <strong style={{ fontFamily:"var(--font-num)", fontSize:14, color: simPrice > currentPrice ? "var(--green)" : "var(--red)" }}>{simPrice > currentPrice ? "+" : "−"}{fmt(Math.abs(simPrice - currentPrice))}원</strong></span>
                   )}
                 </div>
               )}
@@ -1731,7 +1731,7 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
                 <div style={{ flex:1, height:7, background:"var(--border)", borderRadius:99, overflow:"hidden" }}>
                   <div style={{ height:"100%", width:`${Math.min(pct as number, 100)}%`, background:color as string, borderRadius:99, transition:"width 0.4s" }} />
                 </div>
-                <span style={{ width:54, textAlign:"right", fontFamily:"'DM Mono',monospace", fontSize:13, color:color as string }}>{(pct as number).toFixed(1)}%</span>
+                <span style={{ width:54, textAlign:"right", fontFamily:"var(--font-num)", fontSize:13, color:color as string }}>{(pct as number).toFixed(1)}%</span>
                 <span style={{ width:120, textAlign:"right", fontSize:10, color:"var(--text-sub)" }}>{detail}</span>
               </div>
             ))}
@@ -1739,7 +1739,7 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
             {/* 전체 배달경비 */}
             <div style={{ background:"rgba(96,165,250,0.08)", border:"1px solid rgba(96,165,250,0.3)", borderRadius:10, padding:"12px 16px", marginTop:14, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <span style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>🚴 전체 배달경비 (수수료+결제+배달비+포장재)</span>
-              <span style={{ fontFamily:"'DM Mono',monospace", fontSize:16, color:"#60a5fa" }}>
+              <span style={{ fontFamily:"var(--font-num)", fontSize:16, color:"#60a5fa" }}>
                 {fmt(deliveryExpense)}원 <span style={{ fontSize:13 }}>({deliveryExpensePct.toFixed(1)}%)</span>
               </span>
             </div>
@@ -1748,11 +1748,11 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginTop:10 }}>
               <div style={{ background:"var(--surface)", border:`1px solid ${totalPct > 70 ? "rgba(255,92,92,0.4)" : "var(--border)"}`, borderRadius:10, padding:"14px 16px", textAlign:"center" }}>
                 <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:4 }}>총 비용 비율</div>
-                <div style={{ fontFamily:"'DM Mono',monospace", fontSize:24, color: totalPct > 70 ? "var(--red)" : "var(--text)" }}>{totalPct.toFixed(1)}%</div>
+                <div style={{ fontFamily:"var(--font-num)", fontSize:24, fontWeight:700, color: totalPct > 70 ? "var(--red)" : "var(--text)" }}>{totalPct.toFixed(1)}%</div>
               </div>
               <div style={{ background:"var(--surface)", border:`1px solid ${remainPct < 30 ? "rgba(255,92,92,0.4)" : "rgba(61,214,140,0.3)"}`, borderRadius:10, padding:"14px 16px", textAlign:"center" }}>
                 <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:4 }}>남는 몫 = 공헌이익 (고정비+이익)</div>
-                <div style={{ fontFamily:"'DM Mono',monospace", fontSize:24, color: remainPct < 30 ? "var(--red)" : "var(--green)" }}>{remainPct.toFixed(1)}%</div>
+                <div style={{ fontFamily:"var(--font-num)", fontSize:24, fontWeight:700, color: remainPct < 30 ? "var(--red)" : "var(--green)" }}>{remainPct.toFixed(1)}%</div>
               </div>
             </div>
 
@@ -1762,35 +1762,35 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
               <div style={{ fontSize:11, color:"var(--text-sub)", marginBottom:12, lineHeight:1.6 }}>앞에서 말한 &lsquo;남는 몫&rsquo;이 회계용어로 <strong style={{ color:"var(--text)" }}>공헌이익</strong>입니다. 판매가에서 팔릴 때마다 나가는 변동비(식재료·수수료·결제·배달비·포장재)만 뺀 값이라, 여기서 고정비를 전부 빼야 내 몫이 나옵니다.</div>
               <div style={{ display:"flex", justifyContent:"space-between", fontSize:13, color:"var(--text)", padding:"5px 0" }}>
                 <span>공헌이익 <span style={{ fontSize:11, color:"var(--text-sub)" }}>(= 남는 몫)</span></span>
-                <span style={{ fontFamily:"'DM Mono',monospace" }}>{fmt(remainAmt)}원 <span style={{ fontSize:11, color:"var(--text-sub)" }}>({remainPct.toFixed(1)}%)</span></span>
+                <span style={{ fontFamily:"var(--font-num)" }}>{fmt(remainAmt)}원 <span style={{ fontSize:11, color:"var(--text-sub)" }}>({remainPct.toFixed(1)}%)</span></span>
               </div>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", fontSize:13, color:"var(--text-sub)", padding:"5px 0", gap:8 }}>
                 <span style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>− 인건비 몫
                   <input type="number" value={laborPctStr} onChange={e => setLaborPctStr(e.target.value)}
-                    style={{ ...S.input, width:54, padding:"4px 6px", fontSize:12, textAlign:"center", fontFamily:"'DM Mono',monospace" }} />
+                    style={{ ...S.input, width:54, padding:"4px 6px", fontSize:12, textAlign:"center", fontFamily:"var(--font-num)" }} />
                   <span style={{ fontSize:11 }}>% (매출 대비)</span>
                 </span>
-                <span style={{ fontFamily:"'DM Mono',monospace", flexShrink:0 }}>−{fmt(laborAmt)}원</span>
+                <span style={{ fontFamily:"var(--font-num)", flexShrink:0 }}>−{fmt(laborAmt)}원</span>
               </div>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", fontSize:13, color:"var(--text-sub)", padding:"5px 0", gap:8 }}>
                 <span style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>− 임대료 몫
                   <input type="number" value={rentPctStr} onChange={e => setRentPctStr(e.target.value)}
-                    style={{ ...S.input, width:54, padding:"4px 6px", fontSize:12, textAlign:"center", fontFamily:"'DM Mono',monospace" }} />
+                    style={{ ...S.input, width:54, padding:"4px 6px", fontSize:12, textAlign:"center", fontFamily:"var(--font-num)" }} />
                   <span style={{ fontSize:11 }}>% (매출 대비)</span>
                 </span>
-                <span style={{ fontFamily:"'DM Mono',monospace", flexShrink:0 }}>−{fmt(rentAmt)}원</span>
+                <span style={{ fontFamily:"var(--font-num)", flexShrink:0 }}>−{fmt(rentAmt)}원</span>
               </div>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", fontSize:13, color:"var(--text-sub)", padding:"5px 0", gap:8 }}>
                 <span style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>− 기타 고정비 몫
                   <input type="number" value={etcPctStr} onChange={e => setEtcPctStr(e.target.value)}
-                    style={{ ...S.input, width:54, padding:"4px 6px", fontSize:12, textAlign:"center", fontFamily:"'DM Mono',monospace" }} />
+                    style={{ ...S.input, width:54, padding:"4px 6px", fontSize:12, textAlign:"center", fontFamily:"var(--font-num)" }} />
                   <span style={{ fontSize:11 }}>% (수도광열·통신·보험·소모품·광고비 등)</span>
                 </span>
-                <span style={{ fontFamily:"'DM Mono',monospace", flexShrink:0 }}>−{fmt(etcAmt)}원</span>
+                <span style={{ fontFamily:"var(--font-num)", flexShrink:0 }}>−{fmt(etcAmt)}원</span>
               </div>
               <div style={{ display:"flex", justifyContent:"space-between", fontSize:14, fontWeight:700, padding:"9px 0 0", marginTop:6, borderTop:"1px solid var(--border)", color: trueProfitAmt < 0 ? "var(--red)" : "var(--green)" }}>
                 <span>= 진짜 이익 <span style={{ fontSize:11, fontWeight:400 }}>(이 메뉴 1건 팔 때)</span></span>
-                <span style={{ fontFamily:"'DM Mono',monospace" }}>{trueProfitAmt < 0 ? "−" : ""}{fmt(Math.abs(trueProfitAmt))}원 <span style={{ fontSize:11 }}>({trueProfitPct.toFixed(1)}%)</span></span>
+                <span style={{ fontFamily:"var(--font-num)" }}>{trueProfitAmt < 0 ? "−" : ""}{fmt(Math.abs(trueProfitAmt))}원 <span style={{ fontSize:11 }}>({trueProfitPct.toFixed(1)}%)</span></span>
               </div>
               {trueProfitAmt < 0 && (
                 <div style={{ fontSize:12, color:"var(--red)", marginTop:10 }}>
@@ -1810,42 +1810,79 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
             {/* 월 손익분기 주문수 */}
             <div style={{ marginTop:14, background:"var(--surface)", border:"1px solid var(--border)", borderRadius:10, padding:"16px 18px" }}>
               <div style={{ fontSize:12, fontWeight:700, color:"var(--text-sub)", letterSpacing:"0.05em", textTransform:"uppercase", marginBottom:4 }}>📅 월 손익분기 — 몇 건 팔아야 본전인가</div>
-              <div style={{ fontSize:11, color:"var(--text-sub)", marginBottom:12, lineHeight:1.6 }}>건당 공헌이익 <strong style={{ color:"var(--text)", fontFamily:"'DM Mono',monospace" }}>{fmt(remainAmt)}원</strong>이 매달 나가는 고정비를 메우는 돈입니다. 월 고정비 총액을 넣으면 몇 건 팔아야 본전인지 나옵니다.</div>
+              <div style={{ fontSize:11, color:"var(--text-sub)", marginBottom:12, lineHeight:1.6 }}>건당 공헌이익 <strong style={{ color:"var(--text)", fontFamily:"var(--font-num)" }}>{fmt(remainAmt)}원</strong>이 매달 나가는 고정비를 메우는 돈입니다. 월 고정비 총액을 넣으면 몇 건 팔아야 본전인지 나옵니다.</div>
               <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:14 }}>
                 <div style={{ flex:1, minWidth:150 }}>
                   <div style={{ fontSize:11, color:"var(--text-sub)", marginBottom:5 }}>월 고정비 총액 (원)</div>
                   <input type="number" placeholder="5000000" value={monthlyFixedStr} onChange={e => setMonthlyFixedStr(e.target.value)}
-                    style={{ ...S.input, fontFamily:"'DM Mono',monospace", fontSize:14 }} />
-                  <div style={{ fontSize:10, color:"var(--text-sub)", marginTop:4 }}>인건비+임차료+수도광열·통신·보험·광고비 등</div>
+                    style={{ ...S.input, fontFamily:"var(--font-num)", fontSize:14 }} />
+                  <div style={{ fontSize:10, color:"var(--text-sub)", marginTop:4 }}>매달 고정으로 나가는 돈 전부 (아래 목록 참고)</div>
                 </div>
                 <div style={{ flex:1, minWidth:150 }}>
                   <div style={{ fontSize:11, color:"var(--text-sub)", marginBottom:5 }}>월 주문수 (건) <span style={{ fontSize:10 }}>· 선택</span></div>
                   <input type="number" placeholder="900" value={monthlyOrdersStr} onChange={e => setMonthlyOrdersStr(e.target.value)}
-                    style={{ ...S.input, fontFamily:"'DM Mono',monospace", fontSize:14 }} />
+                    style={{ ...S.input, fontFamily:"var(--font-num)", fontSize:14 }} />
                   <div style={{ fontSize:10, color:"var(--text-sub)", marginTop:4 }}>넣으면 월 순이익까지 검산합니다</div>
                 </div>
               </div>
+
+              {/* 월 고정비에 무엇을 넣나 */}
+              <details style={{ marginBottom:14, background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:8, padding:"10px 12px" }}>
+                <summary style={{ fontSize:12, fontWeight:700, color:"var(--accent)", cursor:"pointer" }}>📋 월 고정비에 뭘 넣나요? (펼쳐보기)</summary>
+                <div style={{ marginTop:12, display:"flex", gap:14, flexWrap:"wrap" }}>
+                  <div style={{ flex:1, minWidth:200 }}>
+                    <div style={{ fontSize:12, fontWeight:700, color:"var(--green)", marginBottom:6 }}>✅ 넣을 것 — 매달 나가는 돈</div>
+                    <div style={{ fontSize:11.5, color:"var(--text-sub)", lineHeight:1.9 }}>
+                      · 임차료 (월세 + 관리비)<br />
+                      · 인건비 (급여·주휴수당·4대보험, 사장님 급여도 포함)<br />
+                      · 수도광열비 (전기·가스·수도)<br />
+                      · 통신비 (인터넷·전화·POS 사용료)<br />
+                      · 광고비 (우리가게클릭 등 — 위 변동비에 광고비 칸이 없으니 여기 넣으세요)<br />
+                      · 보험료, 세무·회계 기장료<br />
+                      · 소모품·청소·방역비<br />
+                      · 대출이자, 리스료·감가상각<br />
+                      · 배달대행 기본료 등 정기 구독료
+                    </div>
+                  </div>
+                  <div style={{ flex:1, minWidth:200 }}>
+                    <div style={{ fontSize:12, fontWeight:700, color:"var(--red)", marginBottom:6 }}>❌ 넣지 말 것 — 이미 위에서 뺐습니다</div>
+                    <div style={{ fontSize:11.5, color:"var(--text-sub)", lineHeight:1.9 }}>
+                      · 식재료비<br />
+                      · 중개이용료<br />
+                      · 결제정산이용료<br />
+                      · 배달비<br />
+                      · 포장재비
+                    </div>
+                    <div style={{ fontSize:11, color:"var(--red)", marginTop:10, lineHeight:1.6 }}>
+                      이 다섯 개는 팔릴 때마다 나가는 <strong>변동비</strong>라 건당 공헌이익 계산에서 이미 빠졌습니다. 여기 또 넣으면 이중으로 빠져서 순이익이 실제보다 훨씬 나쁘게 나옵니다.
+                    </div>
+                  </div>
+                </div>
+                <div style={{ fontSize:11, color:"var(--text-sub)", marginTop:12, paddingTop:10, borderTop:"1px solid var(--border)", lineHeight:1.7 }}>
+                  📌 예시 — 월세 200만 + 인건비 250만 + 수도광열 40만 + 광고비 20만 + 기타 10만 = <strong style={{ color:"var(--text)", fontFamily:"var(--font-num)" }}>520만원</strong>. 딱 맞는 숫자 몰라도 됩니다. 통장에서 매달 빠지는 돈 대충 더해서 넣어보세요, 그것만으로도 답이 보입니다.
+                </div>
+              </details>
 
               {beOrders > 0 ? (
                 <>
                   <div style={{ padding:"14px 16px", borderRadius:8, background:"rgba(245,200,66,0.06)", border:"1px solid rgba(245,200,66,0.25)", textAlign:"center" }}>
                     <div style={{ fontSize:11, color:"var(--text-sub)", marginBottom:4 }}>이 메뉴만 판다고 보면, 손익분기 주문수는</div>
-                    <div style={{ fontFamily:"'DM Mono',monospace", fontSize:26, color:"var(--accent)", fontWeight:700 }}>월 {fmt(beOrders)}건</div>
+                    <div style={{ fontFamily:"var(--font-num)", fontSize:26, color:"var(--accent)", fontWeight:800 }}>월 {fmt(beOrders)}건</div>
                     <div style={{ fontSize:12, color:"var(--text-sub)", marginTop:4 }}>하루 약 {(beOrders/30).toFixed(1)}건 · 30일 기준</div>
                   </div>
                   {monthlyOrders > 0 && (
                     <div style={{ marginTop:12 }}>
                       <div style={{ display:"flex", justifyContent:"space-between", fontSize:13, color:"var(--text-sub)", padding:"5px 0" }}>
                         <span>월 공헌이익 <span style={{ fontSize:11 }}>({fmt(remainAmt)}원 × {fmt(monthlyOrders)}건)</span></span>
-                        <span style={{ fontFamily:"'DM Mono',monospace" }}>{fmt(monthlyCM)}원</span>
+                        <span style={{ fontFamily:"var(--font-num)" }}>{fmt(monthlyCM)}원</span>
                       </div>
                       <div style={{ display:"flex", justifyContent:"space-between", fontSize:13, color:"var(--text-sub)", padding:"5px 0" }}>
                         <span>− 월 고정비</span>
-                        <span style={{ fontFamily:"'DM Mono',monospace" }}>−{fmt(monthlyFixed)}원</span>
+                        <span style={{ fontFamily:"var(--font-num)" }}>−{fmt(monthlyFixed)}원</span>
                       </div>
                       <div style={{ display:"flex", justifyContent:"space-between", fontSize:14, fontWeight:700, padding:"9px 0 0", marginTop:6, borderTop:"1px solid var(--border)", color: monthlyProfit < 0 ? "var(--red)" : "var(--green)" }}>
                         <span>= 월 순이익</span>
-                        <span style={{ fontFamily:"'DM Mono',monospace" }}>{monthlyProfit < 0 ? "−" : ""}{fmt(Math.abs(monthlyProfit))}원</span>
+                        <span style={{ fontFamily:"var(--font-num)" }}>{monthlyProfit < 0 ? "−" : ""}{fmt(Math.abs(monthlyProfit))}원</span>
                       </div>
                       <div style={{ fontSize:12, marginTop:10, color: orderGap < 0 ? "var(--red)" : "var(--green)" }}>
                         {orderGap < 0
@@ -1870,7 +1907,7 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
                   width:"100%", marginTop:16, padding:"14px", border:"none", borderRadius:10,
                   background: simPrice === currentPrice ? "var(--surface)" : "var(--accent)",
                   color: simPrice === currentPrice ? "var(--text-sub)" : "#1a1a1a",
-                  fontFamily:"'Noto Sans KR',sans-serif", fontSize:14, fontWeight:700,
+                  fontFamily:"var(--font-sans)", fontSize:14, fontWeight:700,
                   cursor: simPrice === currentPrice || applying ? "default" : "pointer",
                   opacity: applying ? 0.6 : 1,
                   boxShadow: simPrice === currentPrice ? "none" : "0 4px 18px rgba(245,200,66,0.25)",
@@ -1892,7 +1929,7 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
 // ── 애니메이션 가격 표시 ───────────────────────────────────────────────────────
 function AnimatedPrice({ price }: { price: number }) {
   const animated = useCountUp(price);
-  if (price <= 0) return <div style={{ fontFamily:"'DM Mono',monospace", fontSize:34, color:"var(--text-sub)" }}>—</div>;
+  if (price <= 0) return <div style={{ fontFamily:"var(--font-num)", fontSize:34, color:"var(--text-sub)" }}>—</div>;
   return (
     <div key={price} className="price-anim" style={{
       fontFamily:"'Bebas Neue', sans-serif",
@@ -1916,7 +1953,7 @@ function CopyMenuDropdown({ stores, onCopy }: { stores: Store[]; onCopy: (id:str
         <div style={{ position:"absolute", top:"calc(100% + 6px)", right:0, background:"var(--surface)", border:"1px solid var(--border)", borderRadius:10, minWidth:180, zIndex:10, overflow:"hidden" }}>
           <div style={{ fontSize:11, fontWeight:700, color:"var(--text-sub)", padding:"10px 14px 6px", letterSpacing:"0.05em" }}>복사할 매장 선택</div>
           {stores.map(s => (
-            <button key={s.id} onClick={() => { onCopy(s.id); setOpen(false); }} style={{ width:"100%", padding:"10px 14px", border:"none", background:"transparent", color:"var(--text)", fontFamily:"'Noto Sans KR',sans-serif", fontSize:13, textAlign:"left", cursor:"pointer", display:"flex", alignItems:"center", gap:8 }}>
+            <button key={s.id} onClick={() => { onCopy(s.id); setOpen(false); }} style={{ width:"100%", padding:"10px 14px", border:"none", background:"transparent", color:"var(--text)", fontFamily:"var(--font-sans)", fontSize:13, textAlign:"left", cursor:"pointer", display:"flex", alignItems:"center", gap:8 }}>
               <span style={{ width:10, height:10, borderRadius:"50%", background:s.color, flexShrink:0 }} />{s.name}
             </button>
           ))}

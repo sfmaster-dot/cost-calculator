@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=DM+Mono:wght@400;500&family=Bebas+Neue&display=swap');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700;800&family=Bebas+Neue&display=swap');
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -13,13 +14,39 @@
   --text: #e8eaf0;
   --text-sub: #8b90a8;
   --radius: 12px;
+  --font-num: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-sans: 'Pretendard Variable', Pretendard, 'Noto Sans KR', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }
 
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Noto Sans KR', sans-serif;
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  word-break: keep-all;
   min-height: 100vh;
+}
+
+/* 버튼·입력요소는 폰트를 물려받지 않으므로 명시 */
+button, input, select, textarea { font-family: inherit; }
+
+/* 숫자 입력칸은 전부 숫자 폰트로 — 자릿수가 흔들리지 않게 tabular 고정 */
+input[type=number],
+input[type=date] {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+input[type=number]:focus { border-color: var(--accent); outline: none; }
+
+/* 표시용 숫자 유틸 */
+.num {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
 input[type=number] { -moz-appearance: textfield; }
