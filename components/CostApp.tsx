@@ -655,29 +655,9 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
         </button>
 
         {/* 카카오톡 안내 */}
-        <div style={{ fontSize:12, color:"var(--text-sub)", textAlign:"center", lineHeight:1.7, marginBottom:32 }}>
+        <div style={{ fontSize:12, color:"var(--text-sub)", textAlign:"center", lineHeight:1.7 }}>
           카카오톡·네이버 앱에서는 로그인이 안 될 수 있어요.<br />
           크롬 또는 사파리로 열어주세요.
-        </div>
-
-        {/* 프로모 버튼 */}
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, width:"100%" }}>
-          <a href="https://danggum.net/ex" target="_blank" style={{
-            display:"flex", alignItems:"center", justifyContent:"center", gap:6,
-            background:"rgba(61,214,140,0.12)", border:"1px solid rgba(61,214,140,0.3)",
-            borderRadius:10, padding:"11px 8px", textDecoration:"none",
-            fontSize:12, fontWeight:700, color:"var(--green)", whiteSpace:"nowrap",
-          }}>
-            🥡 배달창업도&nbsp;<strong>청년다방</strong>
-          </a>
-          <a href="https://danggum.net/agu" target="_blank" style={{
-            display:"flex", alignItems:"center", justifyContent:"center", gap:6,
-            background:"rgba(245,200,66,0.10)", border:"1px solid rgba(245,200,66,0.3)",
-            borderRadius:10, padding:"11px 8px", textDecoration:"none",
-            fontSize:12, fontWeight:700, color:"var(--accent)", whiteSpace:"nowrap",
-          }}>
-            🐟 아구찜&nbsp;<strong>전수창업</strong>
-          </a>
         </div>
       </div>
     </div>
