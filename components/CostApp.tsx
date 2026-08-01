@@ -1406,7 +1406,7 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
   const [selectedMenuId, setSelectedMenuId] = useState("");
   const [targetRate, setTargetRate] = useState(0);    // placeholder 35
   const [delivFee, setDelivFee] = useState(7.8);      // 상생요금제 상위 35% 기준
-  const [payFee, setPayFee] = useState(3);            // 결제정산이용료
+  const [payFee, setPayFee] = useState(3);            // 결제정산수수료
   const [deliveryCost, setDeliveryCost] = useState(3400); // 1등급 점주 부담 배달비
   const [packCost, setPackCost] = useState(500);      // 기본 500원
   const [simPrice, setSimPrice] = useState(0);        // 시뮬레이션 판매가 (0이면 최소 판매가 기준)
@@ -1594,12 +1594,12 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
             <div style={{ position:"relative" }}><input type="number" placeholder="35" style={{ ...S.input, fontFamily:"var(--font-num)", paddingRight:28 }} value={targetRate||""} onChange={e => setTargetRate(parseFloat(e.target.value)||0)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>%</span></div>
           </div>
           <div>
-            <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>중개수수료 (%)</div>
+            <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>중개이용료 (%)</div>
             <div style={{ position:"relative" }}><input type="number" step="0.1" style={{ ...S.input, fontFamily:"var(--font-num)", paddingRight:28 }} value={delivFee} onChange={e => setDelivFee(parseFloat(e.target.value)||0)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>%</span></div>
             <div style={{ fontSize:9, color:"var(--text-sub)", marginTop:3 }}>상생요금제 상위35% 7.8%</div>
           </div>
           <div>
-            <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>결제정산이용료 (%)</div>
+            <div style={{ fontSize:10, fontWeight:700, color:"var(--text-sub)", marginBottom:5 }}>결제정산수수료 (%)</div>
             <div style={{ position:"relative" }}><input type="number" step="0.1" style={{ ...S.input, fontFamily:"var(--font-num)", paddingRight:28 }} value={payFee} onChange={e => setPayFee(parseFloat(e.target.value)||0)} /><span style={{ position:"absolute", right:9, top:"50%", transform:"translateY(-50%)", fontSize:11, color:"var(--text-sub)" }}>%</span></div>
             <div style={{ fontSize:9, color:"var(--text-sub)", marginTop:3 }}>배민 기준 3%</div>
           </div>
@@ -1614,7 +1614,7 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
           </div>
         </div>
         <div style={{ fontSize:11, color:"var(--text-sub)", marginTop:10 }}>
-          ※ 중개수수료·결제정산이용료·배달비는 부가세 별도라 <strong style={{ color:"var(--accent)" }}>×1.1</strong>로 계산합니다.
+          ※ 중개이용료·결제정산수수료·배달비는 부가세 별도라 <strong style={{ color:"var(--accent)" }}>×1.1</strong>로 계산합니다.
         </div>
       </div>
 
@@ -1701,8 +1701,8 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
             {/* 비용 항목 */}
             {[
               ["식재료", `${fmt(cost)}원`, foodPct, "var(--accent)"],
-              ["중개수수료 (×1.1)", `${fmt(effectivePrice * feePct / 100)}원`, feePct, "#60a5fa"],
-              ["결제정산이용료 (×1.1)", `${fmt(effectivePrice * payPct / 100)}원`, payPct, "#3dd68c"],
+              ["중개이용료 (×1.1)", `${fmt(effectivePrice * feePct / 100)}원`, feePct, "#60a5fa"],
+              ["결제정산수수료 (×1.1)", `${fmt(effectivePrice * payPct / 100)}원`, payPct, "#3dd68c"],
               ["점주 부담 배달비 (×1.1)", `${fmt(deliveryCost*1.1)}원`, deliveryPct, "#c084fc"],
               ["포장재·기타", `${fmt(packCost)}원`, packPct, "#f472b6"],
             ].map(([label, detail, pct, color]) => (
@@ -1829,7 +1829,7 @@ function ReversePanel({ menus, storeId, onApplyPrice }: { menus: Menu[]; storeId
                     <div style={{ fontSize:11.5, color:"var(--text-sub)", lineHeight:1.9 }}>
                       · 식재료비<br />
                       · 중개이용료<br />
-                      · 결제정산이용료<br />
+                      · 결제정산수수료<br />
                       · 배달비<br />
                       · 포장재비
                     </div>
