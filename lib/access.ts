@@ -6,7 +6,7 @@
 // 관리자는 무조건 통과. 코드 재입력 시 만료일 연장.
 
 import { db } from "./firebase";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 
 export const ADMIN_EMAILS = ["sfmaster@naver.com"];
 
@@ -36,6 +36,28 @@ function addDays(baseDate: string, days: number): string {
 
 function daysBetween(from: string, to: string): number {
   return Math.ceil((new Date(to).getTime() - new Date(from).getTime()) / 86400000);
+}
+
+// ── 로그인 기록 (손익분석기와 같은 방식) ──
+// 이용권 기록이 있는 회원만 · 가입일(구글 계정 생성일)과 최근 접속 시각
+// 규칙에서 joinedAt·lastLogin 두 칸만, lastLogin은 서버 시각으로만 쓸 수 있게 막는다
+function localDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+export async function recordLogin(
+  u: { email: string | null; metadata?: { creationTime?: string } } | null,
+  a: AccessInfo | null
+): Promise<void> {
+  if (!u || !u.email || !a || a.isAdmin || a.banned || !a.expires) return;
+  try {
+    const payload: Record<string, unknown> = { lastLogin: serverTimestamp() };
+    const ct = u.metadata?.creationTime;
+    if (ct) {
+      const d = new Date(ct);
+      if (!isNaN(d.getTime())) payload.joinedAt = localDate(d);
+    }
+    await updateDoc(doc(db, "toolAccess", u.email.toLowerCase()), payload);
+  } catch { /* 규칙 미적용이면 조용히 넘어간다 */ }
 }
 
 // ── 권한 확인 ──
