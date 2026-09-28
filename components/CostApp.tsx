@@ -9,7 +9,7 @@ import {
   type Store, type Menu, type Ingredient, type MenuHistoryEntry, type ToolMember,
 } from "@/lib/firebase";
 import type { User } from "firebase/auth";
-import { checkAccess, redeemCode, PURCHASE_LINKS, ADMIN_EMAILS, type AccessInfo } from "@/lib/access";
+import { checkAccess, redeemCode, recordLogin, PURCHASE_LINKS, ADMIN_EMAILS, type AccessInfo } from "@/lib/access";
 
 // ── 상수 ──────────────────────────────────────────────────────────────────────
 const STORE_COLORS = ["#f5c842","#ff6b35","#3dd68c","#60a5fa","#c084fc","#f472b6","#fb923c","#34d399"];
@@ -172,6 +172,7 @@ export default function CostApp() {
       if (u) {
         setAccessChecking(true);
         const a = await checkAccess(u.email);
+        recordLogin(u, a);
         setAccess(a);
         setAccessChecking(false);
         if (a.allowed) {
@@ -666,6 +667,9 @@ function AdminPanel({ onBack }: { onBack: () => void }) {
   async function load() {
     try {
       const m = await adminGetMembers();
+      // 이용중 → 만료 → 차단 순, 같은 묶음 안에서는 만료일이 늦은 순
+      const rank = (x: ToolMember) => x.banned ? 3 : !x.expires ? 2 : x.expires >= today ? 0 : 1;
+      m.sort((a, b) => (rank(a) - rank(b)) || (b.expires || "").localeCompare(a.expires || ""));
       setMembers(m);
     } catch {
       setMembers([]);
@@ -753,7 +757,32 @@ function AdminPanel({ onBack }: { onBack: () => void }) {
                     <div style={{ fontSize:11, color:"var(--text-sub)", marginTop:3 }}>
                       <span style={{ color:st.color, fontWeight:700 }}>{st.label}</span>
                       {m.expires && <span style={{ marginLeft:8, fontFamily:"var(--font-num)" }}>~{m.expires}</span>}
-                      {m.plan && <span style={{ marginLeft:8 }}>{m.plan}일권</span>}
+                      {m.expires && !m.banned && (() => {
+                        const left = Math.ceil((new Date(m.expires).getTime() - new Date(today).getTime()) / 86400000);
+                        if (left < 0) return <span style={{ marginLeft:8 }}>{Math.abs(left)}일 지남</span>;
+                        const soon = left <= 30;
+                        return <span style={{ marginLeft:8, color: soon ? "var(--accent)" : undefined, fontWeight: soon ? 700 : 400 }}>{left === 0 ? "오늘 만료" : `${left}일 남음`}</span>;
+                      })()}
+                    </div>
+                    <div style={{ fontSize:11, color:"var(--text-sub)", opacity:0.8, marginTop:3 }}>
+                      {(() => {
+                        // 등록일 기록이 없던 기존 회원: 1년권이면 만료일에서 1년을 빼 등록일로 본다
+                        let est: string | null = null;
+                        if (!m.since && m.plan === "365" && m.expires) {
+                          const d = new Date(m.expires); d.setDate(d.getDate() - 365); est = d.toISOString().slice(0, 10);
+                        }
+                        const parts: string[] = [];
+                        if (m.joinedAt) parts.push(`가입 ${m.joinedAt}`);
+                        if (m.since) parts.push(`등록 ${m.since}`);
+                        else if (est) parts.push(`등록 ${est}`);
+                        if (!parts.length) parts.push("가입일 모름");
+                        const t = m.lastLogin && typeof m.lastLogin.toDate === "function" ? m.lastLogin.toDate() : null;
+                        if (!t) return <span>{parts.join(" · ")} · 접속 기록 없음</span>;
+                        const days = Math.floor((Date.now() - t.getTime()) / 86400000);
+                        const when = days <= 0 ? `오늘 ${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}` : days === 1 ? "어제" : `${days}일 전`;
+                        const idle = !m.banned && !!m.expires && m.expires >= today && days >= 30;
+                        return <span>{parts.join(" · ")} · <span style={{ color: idle ? "var(--accent)" : undefined, fontWeight: idle ? 700 : 400 }}>최근 접속 {when}{idle ? " · 한 달 넘게 안 들어옴" : ""}</span></span>;
+                      })()}
                     </div>
                   </div>
                   <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
