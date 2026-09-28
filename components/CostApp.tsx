@@ -564,24 +564,15 @@ function AccessGate({ user, access, onRedeemed, onLogout }: {
           </div>
         </div>
 
-        {/* 구매 버튼 */}
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:22 }}>
-          <a href={PURCHASE_LINKS.month} target="_blank" style={{
-            display:"flex", flexDirection:"column", alignItems:"center", gap:3,
-            background:"var(--surface2)", border:"1px solid var(--border)",
-            borderRadius:12, padding:"14px 8px", textDecoration:"none",
-          }}>
-            <span style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>1개월권</span>
-            <span style={{ fontSize:12, color:"var(--accent)", fontFamily:"var(--font-num)" }}>49,800원</span>
-          </a>
+        {/* 구매 버튼 — 1년권 단일 상품 */}
+        <div style={{ marginBottom:22 }}>
           <a href={PURCHASE_LINKS.year} target="_blank" style={{
-            display:"flex", flexDirection:"column", alignItems:"center", gap:3,
+            display:"flex", alignItems:"center", justifyContent:"center", gap:10,
             background:"rgba(245,200,66,0.1)", border:"1px solid rgba(245,200,66,0.4)",
-            borderRadius:12, padding:"14px 8px", textDecoration:"none", position:"relative",
+            borderRadius:12, padding:"16px 12px", textDecoration:"none",
           }}>
-            <span style={{ position:"absolute", top:-9, right:8, background:"var(--accent)", color:"#0f1117", fontSize:9, fontWeight:800, padding:"2px 8px", borderRadius:99 }}>BEST</span>
-            <span style={{ fontSize:13, fontWeight:700, color:"var(--accent)" }}>1년권</span>
-            <span style={{ fontSize:12, color:"var(--accent)", fontFamily:"var(--font-num)" }}>148,000원</span>
+            <span style={{ fontSize:14, fontWeight:700, color:"var(--accent)" }}>1년 이용권</span>
+            <span style={{ fontSize:14, fontWeight:700, color:"var(--accent)", fontFamily:"var(--font-num)" }}>198,000원</span>
           </a>
         </div>
 
