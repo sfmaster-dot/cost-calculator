@@ -195,6 +195,10 @@ export interface ToolMember {
   plan?: string;
   banned?: boolean;
   updatedAt?: unknown;
+  since?: string;       // 이용권 첫 등록일
+  joinedAt?: string;    // 구글 계정 생성일 (회원이 로그인할 때 기록)
+  lastLogin?: { toDate?: () => Date } | null;  // 최근 접속 (서버 시각)
+  manual?: boolean;     // 관리자 수동 등록
 }
 
 export async function adminGetMembers(): Promise<ToolMember[]> {
@@ -217,9 +221,11 @@ export async function adminExtend(email: string, days: number) {
   const today = new Date().toISOString().slice(0, 10);
   const snap = await getDoc(doc(db, "toolAccess", lower));
   let base = today;
+  let hasSince = false;
   if (snap.exists()) {
     const cur = snap.data().expires as string;
     if (cur && cur > today) base = cur;
+    hasSince = !!snap.data().since;
   }
   const d = new Date(base);
   d.setDate(d.getDate() + days);
@@ -228,6 +234,8 @@ export async function adminExtend(email: string, days: number) {
     expires,
     plan: String(days),
     updatedAt: serverTimestamp(),
+    manual: true,
+    ...(hasSince ? {} : { since: today }),
   }, { merge: true });
   return expires;
 }
