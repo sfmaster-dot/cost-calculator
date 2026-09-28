@@ -76,30 +76,16 @@ export async function redeemCode(
   const code = inputCode.trim();
   if (!code) return { ok: false, message: "코드를 입력해주세요" };
 
-  // 유효 코드 조회 (Firebase에 저장 — 사장님이 콘솔에서 언제든 교체 가능)
-  let code30 = "", code365 = "";
-  try {
-    const cfgSnap = await getDoc(doc(db, "toolConfig", "codes"));
-    if (cfgSnap.exists()) {
-      const cfg = cfgSnap.data();
-      code30 = (cfg.code30 || "").trim();
-      code365 = (cfg.code365 || "").trim();
-    }
-  } catch {
-    return { ok: false, message: "잠시 후 다시 시도해주세요" };
-  }
-
-  let days = 0;
-  let plan = "";
-  if (code30 && code === code30) { days = 30; plan = "30"; }
-  else if (code365 && code === code365) { days = 365; plan = "365"; }
-  else {
-    return { ok: false, message: "유효하지 않은 코드입니다. 회원 페이지의 코드를 확인해주세요" };
-  }
+  // 보안: 코드 대조는 Firestore 규칙에서 한다 (toolConfig는 관리자만 읽을 수 있음).
+  // 앱은 코드를 그대로 실어 보내고, 규칙이 toolConfig/codes.code365와 다르면 거절한다.
+  // 1년권 단일 상품 — 1개월권은 판매 종료
+  const days = 365;
+  const plan = "365";
 
   // 기존 만료일이 남아있으면 그 날짜에 연장, 지났으면 오늘부터
   const today = todayStr();
   let base = today;
+  let hasSince = false;
   try {
     const cur = await getDoc(doc(db, "toolAccess", lower));
     if (cur.exists()) {
@@ -107,17 +93,24 @@ export async function redeemCode(
       if (curData.banned === true) {
         return { ok: false, message: "이용이 제한된 계정입니다. 문의: danggum.net" };
       }
+      hasSince = !!curData.since;
       const curExp = curData.expires as string;
       if (curExp && curExp > today) base = curExp;
     }
   } catch { /* 신규 등록으로 진행 */ }
 
   const newExpires = addDays(base, days);
-  await setDoc(doc(db, "toolAccess", lower), {
-    expires: newExpires,
-    plan,
-    updatedAt: serverTimestamp(),
-  }, { merge: true });
+  try {
+    await setDoc(doc(db, "toolAccess", lower), {
+      expires: newExpires,
+      plan,
+      code,
+      updatedAt: serverTimestamp(),
+      ...(hasSince ? {} : { since: today }),
+    }, { merge: true });
+  } catch {
+    return { ok: false, message: "입장코드가 올바르지 않습니다. 회원 페이지의 코드를 확인해주세요" };
+  }
 
   return { ok: true, message: `이용권이 등록됐습니다 (${newExpires}까지)`, expires: newExpires };
 }
