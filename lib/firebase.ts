@@ -122,6 +122,11 @@ export async function saveMenuOrder(uid: string, storeId: string, menuIds: strin
   ));
 }
 
+// 로컬(KST) 기준 YYYY-MM-DD — toISOString()은 UTC라 한국 오전엔 전날이 찍힘
+function localDateStr(d: Date = new Date()) {
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
 export async function saveMenu(uid: string, storeId: string, menu: Menu) {
   const { id, ...data } = menu;
   const cost = menu.ingredients.reduce((s, ing) => {
@@ -138,10 +143,10 @@ export async function saveMenu(uid: string, storeId: string, menu: Menu) {
       cost,
       costRate,
       updatedAt: serverTimestamp(),
-    });
+    }, { merge: true });   // merge 필수 — 빼면 sortOrder 등 미포함 필드가 지워짐
     // 원가율 추이 스냅샷 (하루 1개 — 같은 날은 최신값으로 갱신)
     if (cost > 0) {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localDateStr();   // UTC 기준이면 한국 오전에 전날로 기록됨
       await setDoc(doc(db, "users", uid, "stores", storeId, "menus", id, "history", today), {
         date: today,
         cost: Math.round(cost),
