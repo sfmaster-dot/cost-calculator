@@ -983,12 +983,13 @@ function MenuCard({ menu, colorIdx, onChange, onDelete, onDuplicate, onMove, isF
   const fillColor = rate <= 30 ? "var(--green)" : rate <= 35 ? "#f5c842" : "var(--red)";
 
   function updateIng(idx: number, field: keyof Ingredient, val: string) {
-    const ings = [...(menu.ingredients || [])];
-    if (field === "name" || field === "priceDate") {
-      (ings[idx] as any)[field] = val;
-    } else {
-      (ings[idx] as any)[field] = parseFloat(val) || 0;
-    }
+    // 수정 대상 행만 새 객체로 복사 — 배열만 복사하면 원본 객체를 그대로 건드려
+    // 변경 전후 비교(기준날짜 자동 갱신 등)가 항상 '같다'로 나온다
+    const ings = (menu.ingredients || []).map((ing, i) =>
+      i === idx
+        ? { ...ing, [field]: (field === "name" || field === "priceDate") ? val : (parseFloat(val) || 0) }
+        : ing
+    );
     onChange({ ...menu, ingredients: ings });
   }
 
