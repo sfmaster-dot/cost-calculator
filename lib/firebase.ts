@@ -72,13 +72,18 @@ export interface Store {
   name: string;
   color: string;
   createdAt?: unknown;
+  hideCost?: boolean;    // 원가계산기에서 지운 매장 (손익분석기에는 남아 있음)
+  hideProfit?: boolean;  // 손익분석기에서 지운 매장
 }
 
 // Stores
 export async function getStores(uid: string): Promise<Store[]> {
   const q = query(collection(db, "users", uid, "stores"), orderBy("createdAt", "asc"));
   const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Store));
+  // 손익분석기와 매장 목록을 같이 쓴다. 원가계산기에서 지운 매장(hideCost)만 뺀다
+  return snap.docs
+    .map(d => ({ id: d.id, ...d.data() } as Store))
+    .filter(s => s.hideCost !== true);
 }
 
 export async function addStore(uid: string, data: Omit<Store, "id">) {
@@ -93,10 +98,14 @@ export async function updateStore(uid: string, storeId: string, data: Partial<St
 }
 
 export async function deleteStore(uid: string, storeId: string) {
-  // 메뉴도 함께 삭제
+  // 매장 문서는 손익분석기와 같이 쓴다. 원가계산기 자료(메뉴)만 지우고 이 앱에서만 숨긴다.
+  // 손익분석기에서도 이미 지운 매장(hideProfit)이면 그때 문서까지 지운다
   const menuSnap = await getDocs(collection(db, "users", uid, "stores", storeId, "menus"));
   await Promise.all(menuSnap.docs.map(d => deleteDoc(d.ref)));
-  return deleteDoc(doc(db, "users", uid, "stores", storeId));
+  const ref = doc(db, "users", uid, "stores", storeId);
+  const cur = await getDoc(ref);
+  if (cur.exists() && cur.data().hideProfit === true) return deleteDoc(ref);
+  return setDoc(ref, { hideCost: true }, { merge: true });
 }
 
 // Menus
